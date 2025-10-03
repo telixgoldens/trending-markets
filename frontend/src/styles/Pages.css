@@ -1,0 +1,5 @@
+.page h1 { margin: 0 0 12px 0; }
+.card { background: white; padding: 16px; border-radius: 8px; box-shadow: 0 4px 10px rgba(2,6,23,0.04); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; margin-top: 12px; }
+.controls input { padding: 8px; margin-right: 8px; width: 120px; }
+.controls .btn { margin-right: 8px; }

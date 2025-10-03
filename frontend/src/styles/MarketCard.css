@@ -1,0 +1,17 @@
+.market-card {
+  background: var(--card);
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(2,6,23,0.04);
+  margin-bottom: 12px;
+}
+.market-card h3 { margin: 0 0 8px 0; }
+.market-card .meta { font-size: 12px; color: var(--muted); display:flex; gap:12px; }
+.market-card .actions { margin-top: 12px; }
+.market-card .btn {
+  background: var(--accent);
+  color: white;
+  padding: 8px 10px;
+  border-radius: 6px;
+  text-decoration: none;
+}

@@ -1,0 +1,22 @@
+.navbar {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  border-bottom: 1px solid #e6eef8;
+  background: white;
+}
+
+.nav-left h2 { margin: 0; font-size: 18px; }
+.nav-right { display: flex; gap: 12px; align-items: center; }
+.btn-connect, .btn {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.btn-danger { background: #ef4444; }
+.wallet { padding: 6px 10px; border-radius: 6px; background: #eef2ff; }
