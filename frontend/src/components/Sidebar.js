@@ -17,7 +17,7 @@ function Sidebar() {
         <NavLink to="/profile" className="menu-item">Profile</NavLink>
       </nav>
 
-      <div className="foot">MetaMask Smart Accounts Hackathon</div>
+      <div className="foot">Trending Markets 2025</div>
     </aside>
   );
 }

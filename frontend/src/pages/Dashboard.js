@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getMarketFactory, getProvider } from "../lib/contracts";
+import { getMarketFactoryContract, getProvider } from "../utils/contracts";
 import MarketCard from "../components/MarketCard";
 import { ethers } from "ethers";
 
@@ -10,7 +10,7 @@ export default function Dashboard() {
     (async () => {
       try {
         const provider = getProvider();
-        const factory = getMarketFactory(provider);
+        const factory = getMarketFactoryContract(provider);
         const list = await factory.getMarkets();
         // list is array of addresses
         const marketsData = await Promise.all(list.map(async (addr) => {

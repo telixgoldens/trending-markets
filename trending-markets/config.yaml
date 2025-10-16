@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=./node_modules/envio/evm.schema.json
+name: trending-markets
+networks:
+- id: 10143
+  start_block: 0
+  contracts:
+  - name: MarketFactory
+    address:
+    - 0x3e4f6F8364Ca4A30D0D50fF68146c005D2cf5c61
+    handler: ./src/EventHandlers.js
+    events:
+    - event: MarketCreated(address indexed market, address creator)
+unordered_multichain_mode: true
+preload_handlers: true
+codegen:
+  mappings:
+    - name: MarketFactory
+      file: "./mappings/MarketFactory.js"

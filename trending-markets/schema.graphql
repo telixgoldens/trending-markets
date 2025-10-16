@@ -1,0 +1,6 @@
+type MarketFactory_MarketCreated {
+  id: ID!
+  market: String!
+  creator: String!
+}
+

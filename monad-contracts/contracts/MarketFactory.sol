@@ -9,7 +9,13 @@ contract MarketFactory is Ownable {
     uint256 public defaultFeeBps;
     address[] public markets;
 
-    event MarketCreated(address indexed market, address creator);
+    
+    event MarketCreated(
+        address indexed market,
+        address indexed creator,
+        string question,
+        uint256 resolveTimestamp
+    );
 
     constructor(address _owner, address _collateral) Ownable(_owner) {
         collateral = _collateral;
@@ -38,7 +44,10 @@ contract MarketFactory is Ownable {
         );
 
         markets.push(address(market));
-        emit MarketCreated(address(market), msg.sender);
+
+        
+        emit MarketCreated(address(market), msg.sender, _question, _resolveTimestamp);
+
         return address(market);
     }
 
