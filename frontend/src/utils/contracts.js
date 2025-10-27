@@ -4,7 +4,7 @@ import MarketFactoryAbi from "../abi/MarketFactory.json";
 import BinaryMarketAbi from "../abi/BinaryMarket.json";
 import MockERC20Abi from "../abi/MockERC20.json";
 
-const RPC = process.env.REACT_APP_RPC_URL || "https://testnet-rpc.monad.xyz";
+const RPC = process.env.REACT_APP_RPC_URL || "https://bsc-testnet-rpc.publicnode.com";
 
 export function getProvider() {
   return new ethers.providers.JsonRpcProvider(RPC);

@@ -1,0 +1,41 @@
+specVersion: 0.0.2
+description: Trending markets subgraph for BNB testnet
+repository: https://your-repo
+
+schema:
+  file: ./schema.graphql
+
+dataSources:
+  - kind: ethereum/contract
+    name: MarketFactory
+    network: bnb-testnet
+    source:
+      address: "0xF8756f33D41064F401F226140cC0266648EDD749" 
+      abi: MarketFactory
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Market
+        - Swap
+        - LiquidityEvent
+        - Resolution
+        - Redemption
+      abis:
+        - name: MarketFactory
+          file: ./abis/MarketFactory.json
+        - name: BinaryMarket
+          file: ./abis/BinaryMarket.json
+      eventHandlers:
+        - event: MarketCreated(indexed address,indexed address,string,uint256)
+          handler: handleMarketCreated
+        - event: LiquidityAdded(indexed address,uint256,uint256,uint256)
+          handler: handleLiquidityAdded
+        - event: Swap(indexed address,uint8,uint256,uint256,uint256)
+          handler: handleSwap
+        - event: MarketResolved(uint8)
+          handler: handleMarketResolved
+        - event: Redeemed(indexed address,uint256,uint256)
+          handler: handleRedeemed
+      file: ./src/mapping.ts

@@ -1,9 +1,9 @@
 export const TARGET_NETWORK = {
-  chainId: "0x279f",  // 10143 decimal -> 0x279f
-  chainName: "Monad Testnet",
-  nativeCurrency: { name: "Monad", symbol: "MON", decimals: 18 },
-  rpcUrls: ["https://testnet-rpc.monad.xyz"],
-  blockExplorerUrls: ["https://testnet.monadexplorer.com"],
+  chainId: 97,  
+  chainName: "bsc Testnet",
+  nativeCurrency: { name: "bsc testnet", symbol: "tBNB", decimals: 18 },
+  rpcUrls: ["https://bsc-testnet-rpc.publicnode.com"],
+  blockExplorerUrls: ["https://testnet.bscscan.com"],
 };
 
 export async function ensureCorrectNetwork() {

@@ -9,6 +9,15 @@ contract MarketFactory is Ownable {
     uint256 public defaultFeeBps;
     address[] public markets;
 
+
+     // Oracle manager integration
+    address public oracleManager;
+    event OracleManagerSet(address indexed oracleManager);
+
+    function setOracleManager(address _oracleManager) external onlyOwner {
+        oracleManager = _oracleManager;
+        emit OracleManagerSet(_oracleManager);
+    }
     
     event MarketCreated(
         address indexed market,

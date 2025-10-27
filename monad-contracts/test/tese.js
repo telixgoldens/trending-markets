@@ -1,0 +1,1 @@
+[{"deploy": "graph deploy --node https://api.thegraph.com/deploy/ YOUR_GITHUB_USERNAME/trending-markets",}]

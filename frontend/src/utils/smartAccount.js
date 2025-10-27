@@ -1,26 +1,33 @@
-import { MetaMaskDelegationToolkit } from "@metamask/delegation-toolkit";
-import MetaMaskSDK from "@metamask/sdk";
-
-let toolkit = null;
-let sdk = null;
+// src/utils/smartAccount.js
+import { createWalletClient, custom, http } from "viem";
+import { bscTestnet } from "viem/chains";
+import { toMetaMaskSmartAccount } from "@metamask/delegation-toolkit";
 
 export async function initToolkit() {
-  if (toolkit) return toolkit;
+  if (!window.ethereum) {
+    throw new Error("MetaMask not found.");
+  }
 
-  // Initialize MetaMask SDK (handles connect for extension/embedded wallets)
-  sdk = new MetaMaskSDK({
-    dappMetadata: { name: "Trending Markets", url: window.location.href },
+  console.log("🌐 Connecting to MetaMask on BNB Testnet...");
+
+  const accounts = await window.ethereum.request({
+    method: "eth_requestAccounts",
   });
 
-  const provider = sdk.getProvider();
-
-  // Initialize Delegation Toolkit for Monad testnet
-  toolkit = new MetaMaskDelegationToolkit({
-    rpcUrl: "https://monad-testnet-rpc.monad.xyz", // replace with actual RPC
-    chainId: 2810, // example Monad testnet ID — verify this
-    provider,
+  const walletClient = createWalletClient({
+    account: accounts[0],
+    chain: bscTestnet,
+    transport: custom(window.ethereum),
   });
 
-  await toolkit.init();
-  return toolkit;
+  console.log("✅ viem walletClient created:", walletClient);
+
+  // Wrap wallet client with the MetaMask Delegation Toolkit
+  const smartAccount = await toMetaMaskSmartAccount({
+    signer: walletClient,
+    chain: bscTestnet,
+  });
+
+  console.log("🎉 Smart Account initialized:", smartAccount);
+  return smartAccount;
 }

@@ -8,15 +8,15 @@ async function main() {
   const [deployer] = await ethers.getSigners();
   console.log("Using account:", deployer.address);
 
-  // Load env
-  const marketAddress = process.env.MARKET_ADDRESS as string;
-  const mockAddress = process.env.COLLATERAL_ADDRESS as string;
+  
+  const marketAddress = process.env.BINARY_MARKET_ADDRESS as string;
+  const mockAddress = process.env.ERC20_ADDRESS as string;
 
   if (!marketAddress || !mockAddress) {
-    throw new Error("Please set MARKET_ADDRESS and COLLATERAL_ADDRESS in .env");
+    throw new Error("Please set BINARY_MARKET_ADDRESS and ERC20_ADDRESS in .env");
   }
 
-  // Attach to contracts
+  
   const market = await ethers.getContractAt("BinaryMarket", marketAddress);
   const mock = await ethers.getContractAt("MockERC20", mockAddress);
 

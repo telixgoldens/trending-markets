@@ -1,0 +1,46 @@
+type Market @entity {
+  id: ID!
+  address: Bytes!
+  creator: Bytes!
+  question: String!
+  resolveTimestamp: BigInt!
+  resolved: Boolean!
+  winningOutcome: BigInt
+}
+
+type LiquidityEvent @entity {
+  id: ID!
+  market: Market!
+  provider: Bytes!
+  yesAmount: BigInt!
+  noAmount: BigInt!
+  shares: BigInt!
+  timestamp: BigInt!
+}
+
+type Swap @entity {
+  id: ID!
+  market: Market!
+  trader: Bytes!
+  outcomeIndex: BigInt!
+  collateralIn: BigInt!
+  tokensOut: BigInt!
+  fee: BigInt!
+  timestamp: BigInt!
+}
+
+type Resolution @entity {
+  id: ID!
+  market: Market!
+  winningOutcome: BigInt!
+  timestamp: BigInt!
+}
+
+type Redemption @entity {
+  id: ID!
+  market: Market!
+  redeemer: Bytes!
+  tokensRedeemed: BigInt!
+  payout: BigInt!
+  timestamp: BigInt!
+}

@@ -5,7 +5,16 @@ import * as dotenv from "dotenv";
 dotenv.config();
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.28",
+  solidity: {
+    version: "0.8.28",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 200
+      },
+      viaIR: true  // enables intermediate representation for extra optimization
+    }
+  },
   networks: {
     hardhat: {},
     sepolia: {
@@ -14,10 +23,10 @@ const config: HardhatUserConfig = {
         ? [process.env.SEPOLIA_PRIVATE_KEY]
         : [],
     },
-    monad: {
-      url: process.env.MONAD_RPC_URL || "",
+    bnbTestnet: {
+      url: process.env.BNB_RPC_URL || "",
       accounts: [
-        process.env.MONAD_PRIVATE_KEY!,
+        process.env.BNB_PRIVATE_KEY!,
         process.env.USER_PRIVATE_KEY!,
         process.env.USER_PRIVATE_KEY2!,
       ].filter(Boolean),
