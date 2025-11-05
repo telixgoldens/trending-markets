@@ -1,10 +1,8 @@
 specVersion: 0.0.4
 description: Trending Markets subgraph for Chapel Testnet
 repository: https://github.com/telixgoldens/trending-markets
-
 schema:
-  file: ./schema.graphql
-
+  file: schema.graphql
 dataSources:
   - kind: ethereum/contract
     name: MarketFactory
@@ -20,12 +18,11 @@ dataSources:
         - Market
       abis:
         - name: MarketFactory
-          file: ./abis/MarketFactory.json
+          file: MarketFactory\MarketFactory.json
       eventHandlers:
         - event: MarketCreated(indexed address,indexed address,string,uint256)
           handler: handleMarketCreated
-      file: ./src/mapping.ts
-
+      file: MarketFactory\MarketFactory.wasm
 templates:
   - name: BinaryMarket
     kind: ethereum/contract
@@ -43,7 +40,7 @@ templates:
         - Redemption
       abis:
         - name: BinaryMarket
-          file: ./abis/BinaryMarket.json
+          file: BinaryMarket\BinaryMarket.json
       eventHandlers:
         - event: LiquidityAdded(indexed address,uint256,uint256,uint256)
           handler: handleLiquidityAdded
@@ -53,4 +50,4 @@ templates:
           handler: handleMarketResolved
         - event: Redeemed(indexed address,uint256,uint256)
           handler: handleRedeemed
-      file: ./src/mapping.ts
+      file: MarketFactory\MarketFactory.wasm

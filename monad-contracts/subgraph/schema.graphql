@@ -1,4 +1,4 @@
-type Market @entity {
+type Market @entity(immutable: false) {
   id: ID!
   address: Bytes!
   creator: Bytes!
@@ -8,7 +8,7 @@ type Market @entity {
   winningOutcome: BigInt
 }
 
-type LiquidityEvent @entity {
+type LiquidityEvent @entity(immutable: true) {
   id: ID!
   market: Market!
   provider: Bytes!
@@ -18,7 +18,7 @@ type LiquidityEvent @entity {
   timestamp: BigInt!
 }
 
-type Swap @entity {
+type Swap @entity(immutable: true) {
   id: ID!
   market: Market!
   trader: Bytes!
@@ -29,14 +29,14 @@ type Swap @entity {
   timestamp: BigInt!
 }
 
-type Resolution @entity {
+type Resolution @entity(immutable: true) {
   id: ID!
   market: Market!
   winningOutcome: BigInt!
   timestamp: BigInt!
 }
 
-type Redemption @entity {
+type Redemption @entity(immutable: true) {
   id: ID!
   market: Market!
   redeemer: Bytes!

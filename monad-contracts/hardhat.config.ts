@@ -1,5 +1,6 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomiclabs/hardhat-ethers";
+import "@nomiclabs/hardhat-etherscan";
 import * as dotenv from "dotenv";
 
 dotenv.config();
@@ -10,10 +11,10 @@ const config: HardhatUserConfig = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 200
+        runs: 200,
       },
-      viaIR: true  // enables intermediate representation for extra optimization
-    }
+      viaIR: true, // enables intermediate representation for extra optimization
+    },
   },
   networks: {
     hardhat: {},
@@ -30,6 +31,11 @@ const config: HardhatUserConfig = {
         process.env.USER_PRIVATE_KEY!,
         process.env.USER_PRIVATE_KEY2!,
       ].filter(Boolean),
+    },
+  },
+  etherscan: {
+    apiKey: {
+      bscTestnet: process.env.BSCSCAN_API_KEY || "",
     },
   },
 };

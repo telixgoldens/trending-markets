@@ -8,7 +8,7 @@ async function main() {
 
   const vaultAddress = process.env.LIQUIDITY_VAULT!;
   const collateralAddress = process.env.ERC20_ADDRESS!;
-  const depositAmount = ethers.utils.parseUnits("1000", 18); // change amount if needed
+  const depositAmount = ethers.utils.parseUnits("5000", 18); // change amount if needed
 
   const Collateral = await ethers.getContractAt("IERC20", collateralAddress);
   const Vault = await ethers.getContractAt("LiquidityVault", vaultAddress);

@@ -1,12 +1,12 @@
 import { BigInt } from "@graphprotocol/graph-ts"
+import { MarketCreated } from "../generated/MarketFactory/MarketFactory"
+import { BinaryMarket } from "../generated/templates"
 import {
-  MarketCreated,
   LiquidityAdded,
   Swap as SwapEvent,
   MarketResolved,
   Redeemed
-} from "../generated/MarketFactory/MarketFactory"
-
+} from "../generated/templates/BinaryMarket/BinaryMarket"
 import { Market, LiquidityEvent, Swap, Resolution, Redemption } from "../generated/schema"
 
 // Helper for unique IDs
@@ -24,7 +24,11 @@ export function handleMarketCreated(event: MarketCreated): void {
   market.resolved = false
   market.winningOutcome = null
   market.save()
+
+  // Start indexing this new market
+  BinaryMarket.create(event.params.market)
 }
+
 
 // LiquidityAdded
 export function handleLiquidityAdded(event: LiquidityAdded): void {
@@ -45,7 +49,7 @@ export function handleSwap(event: SwapEvent): void {
   let s = new Swap(id)
   s.market = event.address.toHex()
   s.trader = event.params.trader
-  s.outcomeIndex = event.params.outcomeIndex
+  s.outcomeIndex = BigInt.fromI32(event.params.outcomeIndex)  // ✅ FIXED
   s.collateralIn = event.params.collateralIn
   s.tokensOut = event.params.tokensOut
   s.fee = event.params.fee
@@ -58,13 +62,13 @@ export function handleMarketResolved(event: MarketResolved): void {
   let market = Market.load(event.address.toHex())
   if (market == null) return
   market.resolved = true
-  market.winningOutcome = event.params.winningOutcome
+  market.winningOutcome = BigInt.fromI32(event.params.winningOutcome) // ✅ FIXED
   market.save()
 
   let id = event.transaction.hash.toHex() + "-" + event.logIndex.toString()
   let r = new Resolution(id)
   r.market = market.id
-  r.winningOutcome = event.params.winningOutcome
+  r.winningOutcome = BigInt.fromI32(event.params.winningOutcome) // ✅ FIXED
   r.timestamp = event.block.timestamp
   r.save()
 }

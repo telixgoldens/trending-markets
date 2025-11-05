@@ -112,22 +112,42 @@ contract BinaryMarket is Ownable {
         require(outcomeIndex == 0 || outcomeIndex == 1, "Bad outcome");
         require(collateralIn > 0, "Zero collateral");
 
+         // Snapshot reserves for pricing before changing them
+        uint256 rYes = reserveYes;
+        uint256 rNo = reserveNo;
+
         uint256 fee = (collateralIn * feeBps) / 10000;
         uint256 net = collateralIn - fee;
 
         uint256 tokensOut;
         if (outcomeIndex == 1) {
-            require(reserveNo > 0, "Insufficient depth");
-            tokensOut = (net * reserveNo) / (reserveYes + net);
-            reserveYes += net;
+            require(rNo > 0, "Insufficient depth");
+            tokensOut = (net * rNo) / (rYes + net);
         } else {
-            require(reserveYes > 0, "Insufficient depth");
-            tokensOut = (net * reserveYes) / (reserveNo + net);
-            reserveNo += net;
+            require(rYes > 0, "Insufficient depth");
+            tokensOut = (net * rYes) / (rNo + net);
         }
 
         require(tokensOut > 0 && tokensOut >= minTokensOut, "Slippage");
-        require(collateral.transferFrom(msg.sender, address(this), collateralIn), "Transfer failed");
+
+        // If collateral was already transferred to this contract (e.g., router forwarded it),
+        // skip transferFrom. Otherwise, try to pull tokens from the caller.
+        uint256 balanceBefore = collateral.balanceOf(address(this));
+        // expected balance after a successful direct transfer would be balanceBefore + collateralIn
+        // but we compare against internal reserves sum (rYes + rNo) for sanity:
+     
+     if (balanceBefore < (rYes + rNo) + collateralIn) {
+            // attempt to pull tokens from the caller (works when caller is the user and approved this market)
+            require(collateral.transferFrom(msg.sender, address(this), collateralIn), "Transfer failed");
+        }
+
+        // now update reserves after tokens are in contract
+        if (outcomeIndex == 1) {
+            reserveYes += net;
+        } 
+        else {
+            reserveNo += net;
+        }
 
         if (outcomeIndex == 1) {
             tokenYes.mint(msg.sender, tokensOut);

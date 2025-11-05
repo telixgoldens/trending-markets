@@ -1,23 +1,41 @@
-import hre from "hardhat";
+import { ethers } from "hardhat";
 
 async function main() {
-  const factoryAddress = "0x..."; // paste factory address (deployed)
-  const factory = await hre.ethers.getContractAt("MarketFactory", factoryAddress);
+  const [deployer] = await ethers.getSigners();
+  const factoryAddress = "0xd490A2739475B40908C83e2c21512a9876D093c8";
 
-  // Example params
-  const question = "Will ETH be above $4k on 2025-12-01?";
-  const resolveTimestamp = Math.floor(new Date("2025-12-01T00:00:00Z").getTime() / 1000);
-  const oracle = (await hre.ethers.getSigners())[0].address;
-  const feeBps = 50; // 0.5%
+  const factory = await ethers.getContractAt("MarketFactory", factoryAddress);
 
-  const tx = await factory.deployMarket(question, resolveTimestamp, oracle, feeBps);
+  const question = "Will ETH be above $5000 by November 30 2025?";
+  const resolveTime = Math.floor(Date.now() / 1000) + 3 * 24 * 3600; // 3 days
+  const yesName = "Yes Token";
+  const yesSymbol = "YES";
+  const noName = "No Token";
+  const noSymbol = "NO";
+
+  console.log("🚀 Creating market...");
+  const tx = await factory.createMarket(
+    question,
+    resolveTime,
+    yesName,
+    yesSymbol,
+    noName,
+    noSymbol,
+    { gasLimit: 3_000_000 }
+  );
+
+  console.log("Tx sent:", tx.hash);
   const receipt = await tx.wait();
-  console.log("Market created, tx:", receipt.transactionHash);
-
-  // get market address from event (simplest = read last in getMarkets)
-  const markets = await factory.getMarkets();
-  console.log("Markets:", markets);
-  console.log("New market address:", markets[markets.length - 1]);
+  const event = receipt.events?.find((e: any) => e.event === "MarketCreated");
+  if (event) {
+    console.log("✅ Market created successfully!");
+    console.log("Market address:", event.args[0]);
+  } else {
+    console.log("⚠️ No MarketCreated event found in receipt.");
+  }
 }
 
-main().catch(console.error);
+main().catch((err) => {
+  console.error("❌ Error:", err);
+  process.exitCode = 1;
+});

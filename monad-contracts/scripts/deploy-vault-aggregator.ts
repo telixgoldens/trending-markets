@@ -30,7 +30,7 @@ async function main() {
   // Optional: Pre-configure aggregator markets
   // Example: const sampleMarket = "0x9450904f8e90fAd32e3f3157A38EFB6A090Cb0D4";
   // You can add markets in frontend or via a setter function if you add one in AggregatorRouter
-  console.log("\n✅ Deployment Complete:");
+  console.log("\n Deployment Complete:");
   console.log("LiquidityVault:", vault.address);
   console.log("AggregatorRouter:", aggregator.address);
 }
