@@ -6,7 +6,7 @@ async function main() {
   console.log("Deploying MockERC20 with account:", deployer.address);
 
   const MockERC20 = await ethers.getContractFactory("MockERC20");
-  const mock = await MockERC20.deploy("Mock USD", "mUSD", 18);
+  const mock = await MockERC20.deploy("Test USD", "tUSD", 18);
   await mock.deployed();
 
   console.log("✅ MockERC20 deployed at:", mock.address);

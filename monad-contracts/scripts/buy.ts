@@ -18,6 +18,15 @@ async function main() {
   const Collateral = await ethers.getContractAt("IERC20", collateralAddress);
   const Market = await ethers.getContractAt("BinaryMarket", marketAddress);
 
+  // Abort early if market already resolved
+  try {
+    const isResolved = await Market.resolved();
+    if (isResolved) throw new Error("Market already resolved — aborting buy");
+  } catch (e: any) {
+    // If the contract doesn't expose resolved(), continue (older ABI); otherwise rethrow
+    if (e.message && e.message.includes("already resolved")) throw e;
+  }
+
   const userBalance = await Collateral.balanceOf(user.address);
   const collateralIn = ethers.utils.parseUnits("100", 18);
 

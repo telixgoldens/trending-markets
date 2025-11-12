@@ -8,6 +8,7 @@ interface IERC20Minimal {
 interface IPriceableMarket {
     function getReserves() external view returns (uint256 yesReserve, uint256 noReserve);
     function buy(uint8 outcomeIndex, uint256 collateralIn, uint256 minTokensOut) external;
+    function resolved() external view returns (bool);
     function collateral() external view returns (address);
 }
 
@@ -17,14 +18,19 @@ contract AggregatorRouter {
         require(markets.length > 0, "No markets");
         uint256 bestIndex = 0;
         uint256 bestDepth = 0;
+         bool found = false;
         for (uint i = 0; i < markets.length; i++) {
+            if (IPriceableMarket(markets[i]).resolved()) continue;
             (uint256 yes, uint256 no) = IPriceableMarket(markets[i]).getReserves();
             uint256 depth = (outcomeIndex == 1) ? no : yes;
             if (depth > bestDepth) {
                 bestDepth = depth;
                 bestIndex = i;
+                found = true;
             }
         }
+        require(found, "No open markets");
+
         address chosen = markets[bestIndex];
 
         // pull user's collateral into the chosen market (caller must have approved this router)

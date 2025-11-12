@@ -2,16 +2,16 @@ import { ethers } from "hardhat";
 
 async function main() {
   const [deployer] = await ethers.getSigners();
-  const factoryAddress = "0xd490A2739475B40908C83e2c21512a9876D093c8";
+  const factoryAddress = "0xa164Aa414cbB0b53574C570f7072dD6c5Df8e936";
 
   const factory = await ethers.getContractAt("MarketFactory", factoryAddress);
 
-  const question = "Will ETH be above $5000 by November 30 2025?";
+  const question = "Will the World Denuclearize by the end of the yeear?";
   const resolveTime = Math.floor(Date.now() / 1000) + 3 * 24 * 3600; // 3 days
   const yesName = "Yes Token";
-  const yesSymbol = "YES";
+  const yesSymbol = "Yes";
   const noName = "No Token";
-  const noSymbol = "NO";
+  const noSymbol = "No";
 
   console.log("🚀 Creating market...");
   const tx = await factory.createMarket(

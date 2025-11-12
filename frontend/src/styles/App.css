@@ -1,44 +1,167 @@
 :root {
-  --bg: #f4f7fb;
-  --card: #ffffff;
-  --accent: #2563eb;
-  --muted: #6b7280;
+  --bg: #0b0e11;
+  --card: #1e2329;
+  --muted: #9aa0a6;
+  --text: #eaecef;
+  --gold: #f0b90b;
+  --accent: #ffd95a;
+  --green: #2ecc71;
+  --red: #ff6b6b;
 }
 
-body, html, #root {
+/* GLOBAL RESET */
+html, body, #root {
   height: 100%;
   margin: 0;
-  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  padding: 0;
   background: var(--bg);
-  color: #111827;
+  color: var(--text);
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
-.app {
-  display: flex;
-  min-height: 100vh;
+
+/* SIDEBAR - FIXED DESKTOP */
+.tm-sidebar {
+  width: 240px !important;
+  min-width: 240px !important;
+  flex-shrink: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  z-index: 100;
+  transition: transform 0.3s ease;
 }
 
+/* MAIN AREA */
 .main {
   flex: 1;
   display: flex;
   flex-direction: column;
+  margin-left: 0; 
+  background: var(--bg);
+  min-height: 100vh;
+}
+
+.tm-navbar {
+  top: 0;
+  z-index: 20;
 }
 
 .content {
-  padding: 24px;
-}
-.market-list {
-  display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-}
-
-.market-link {
-  text-decoration: none;
-  color: #1e3a8a;
+  flex: 1;
+  padding: 30px 40px; /* space around content */
+  overflow-y: auto;
+  background: var(--bg);
+  display: flex;
+  justify-content: center;
 }
 
-.market-link:hover h3 {
-  color: #2563eb;
-  text-decoration: underline;
+/* GENERAL PAGE STYLES */
+.page {
+  width: 100%;
+  max-width: 1200px; /* like a centered container */
+  margin: 0 auto;
+  background: var(--bg);
+  color: var(--text);
+  box-sizing: border-box;
+  padding: 20px;
+  border-radius: 10px;
+}
+
+/* SCROLLBAR */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2a2a2a #0b0b0b;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: #2a2a2a;
+  border-radius: 4px;
+}
+*::-webkit-scrollbar-track {
+  background: #0b0b0b;
+}
+
+/* ====================================== */
+/* 📱 RESPONSIVE DESIGN */
+/* ====================================== */
+
+/* Tablets (below 1024px) */
+@media (max-width: 1024px) {
+  .tm-sidebar {
+    width: 200px !important;
+    min-width: 200px !important;
+  }
+
+  .main {
+    margin-left: 200px;
+  }
+
+  .content {
+    padding: 16px;
+  }
+}
+
+/* Mobile (below 768px) */
+@media (max-width: 768px) {
+  .tm-sidebar {
+    transform: translateX(-100%);
+    position: fixed;
+  }
+
+  .tm-sidebar.open {
+    transform: translateX(0);
+  }
+
+  .main {
+    margin-left: 0;
+  }
+
+  .tm-floating-hamburger {
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    background: var(--gold);
+    border: none;
+    color: #111;
+    font-size: 20px;
+    border-radius: 6px;
+    padding: 6px 10px;
+    cursor: pointer;
+    z-index: 120;
+  }
+
+  .content {
+    padding: 15px;
+  }
+}
+/* === GLOBAL PAGE ALIGNMENT FIX === */
+.page,
+.dashboard,
+.market-list,
+.profile-page,
+.create-market-page,
+.settings-page {
+  margin: 0 !important;
+  padding: 20px 30px !important;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Fix pages starting under sidebar */
+.main > * {
+  width: 100%;
+  margin-left: 0 !important;
+}
+
+/* Prevent any content from sliding under sidebar */
+main.content {
+  margin-left: 0 !important;
+  padding-left: 0 !important;
 }

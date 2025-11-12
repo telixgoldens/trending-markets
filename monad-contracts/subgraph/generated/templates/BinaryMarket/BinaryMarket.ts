@@ -257,6 +257,29 @@ export class BinaryMarket extends ethereum.SmartContract {
     );
   }
 
+  isTrustedForwarder(forwarder: Address): boolean {
+    let result = super.call(
+      "isTrustedForwarder",
+      "isTrustedForwarder(address):(bool)",
+      [ethereum.Value.fromAddress(forwarder)],
+    );
+
+    return result[0].toBoolean();
+  }
+
+  try_isTrustedForwarder(forwarder: Address): ethereum.CallResult<boolean> {
+    let result = super.tryCall(
+      "isTrustedForwarder",
+      "isTrustedForwarder(address):(bool)",
+      [ethereum.Value.fromAddress(forwarder)],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toBoolean());
+  }
+
   lpShares(param0: Address): BigInt {
     let result = super.call("lpShares", "lpShares(address):(uint256)", [
       ethereum.Value.fromAddress(param0),
@@ -438,6 +461,29 @@ export class BinaryMarket extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toBigInt());
   }
 
+  trustedForwarder(): Address {
+    let result = super.call(
+      "trustedForwarder",
+      "trustedForwarder():(address)",
+      [],
+    );
+
+    return result[0].toAddress();
+  }
+
+  try_trustedForwarder(): ethereum.CallResult<Address> {
+    let result = super.tryCall(
+      "trustedForwarder",
+      "trustedForwarder():(address)",
+      [],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toAddress());
+  }
+
   winningOutcome(): i32 {
     let result = super.call("winningOutcome", "winningOutcome():(uint8)", []);
 
@@ -513,6 +559,10 @@ export class ConstructorCall__Inputs {
 
   get noSymbol(): string {
     return this._call.inputValues[9].value.toString();
+  }
+
+  get _trustedForwarder(): Address {
+    return this._call.inputValues[10].value.toAddress();
   }
 }
 

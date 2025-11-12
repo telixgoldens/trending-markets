@@ -1,7 +1,7 @@
 export const TARGET_NETWORK = {
-  chainId: 97,  
+  chainId: "0x61",  
   chainName: "bsc Testnet",
-  nativeCurrency: { name: "bsc testnet", symbol: "tBNB", decimals: 18 },
+  nativeCurrency: { name: "BnB Smartchain testnet", symbol: "tBNB", decimals: 18 },
   rpcUrls: ["https://bsc-testnet-rpc.publicnode.com"],
   blockExplorerUrls: ["https://testnet.bscscan.com"],
 };

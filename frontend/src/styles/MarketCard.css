@@ -1,17 +1,269 @@
-.market-card {
-  background: var(--card);
-  padding: 16px;
-  border-radius: 8px;
-  box-shadow: 0 4px 10px rgba(2,6,23,0.04);
+.market-card-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.market-card:hover {
+  border-color: #2563eb;
+  transform: translateY(-3px);
+}
+
+.card-title {
+  font-size: 1.1rem;
+  color: #f3f4f6;
   margin-bottom: 12px;
 }
-.market-card h3 { margin: 0 0 8px 0; }
-.market-card .meta { font-size: 12px; color: var(--muted); display:flex; gap:12px; }
-.market-card .actions { margin-top: 12px; }
-.market-card .btn {
-  background: var(--accent);
+
+.card-meta {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 12px;
+  margin-bottom: 12px;
+}
+
+.meta-label {
+  color: #9ca3af;
+  font-size: 0.8rem;
+}
+
+.meta-value {
+  color: #f9fafb;
+  font-size: 0.9rem;
+  word-break: break-all;
+}
+
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.choice-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.yes-btn,
+.no-btn {
+  padding: 6px 14px;
+  font-size: 0.9rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: opacity 0.2s;
+}
+
+.yes-btn {
+  background: #16a34a;
   color: white;
-  padding: 8px 10px;
+}
+
+.no-btn {
+  background: #dc2626;
+  color: white;
+}
+
+.yes-btn:hover,
+.no-btn:hover {
+  opacity: 0.85;
+}
+/* Explore / Market List Page */
+.page.markets-page {
+  padding: 20px;
+  margin: 0;
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.page-header {
+  margin-bottom: 20px;
+}
+
+.page-header h1 {
+  font-size: 1.8rem;
+  margin-bottom: 6px;
+  color: #f9fafb;
+}
+
+.page-header p {
+  color: #9ca3af;
+  margin-bottom: 14px;
+  font-size: 0.95rem;
+}
+
+.page-controls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.filter {
+  background: #1f2937;
+  color: #e5e7eb;
+  border: 1px solid #374151;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.filter:hover {
+  background: #2563eb;
+  color: white;
+  transform: translateY(-1px);
+}
+
+/* Grid Layout for Market Cards */
+.market-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.no-markets {
+  text-align: center;
+  font-size: 1rem;
+  color: #9ca3af;
+  margin-top: 30px;
+}
+.circular-gauge {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 12px 0;
+}
+
+.market-card {
+  background: #1f2937;
+  padding: 16px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.meta-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #aaa;
+}
+
+.arc-wrapper {
+  display: flex;
+  height: 8px;
+  width: 100%;
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 8px 0;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.yes-arc {
+  background: #2ecc71;
+  transition: flex 0.3s ease;
+}
+
+.no-arc {
+  background: #ff6b6b;
+  transition: flex 0.3s ease;
+}
+
+.choice-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.yes-btn {
+  background: #2ecc71;
+  border: none;
+  padding: 6px 12px;
   border-radius: 6px;
-  text-decoration: none;
+  color: #fff;
+  cursor: pointer;
+  flex: 1;
+}
+
+.no-btn {
+  background: #ff6b6b;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+  flex: 1;
+}
+
+
+.market-card:hover {
+  transform: translateY(-3px);
+  border-color: #2563eb;
+}
+
+.market-card h3 {
+  font-size: 1.05rem;
+  color: #f9fafb;
+  margin-bottom: 6px;
+}
+
+.market-card small {
+  color: #6b7280;
+  font-size: 0.8rem;
+}
+
+@media (max-width: 600px) {
+  .market-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .filter {
+    flex: 1;
+    text-align: center;
+  }
+}
+.market-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /* 4 cards per row */
+  gap: 16px;
+}
+
+.pagination {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.page-btn {
+  margin: 0 4px;
+  padding: 6px 12px;
+  background: var(--gold);
+  color: black;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+}
+
+.page-btn.active {
+  background: var(--gold);
+}
+.page-container {
+  padding: 20px;
+  min-height: 100vh;
+  background-color: #0f0f0f; 
+}
+
+/* Market cards */
+.market-card {
+  background-color: #1e1e1e;
+  color: #fff;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
 }

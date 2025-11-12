@@ -3,17 +3,12 @@
       "inputs": [
         {
           "internalType": "address",
-          "name": "_owner",
-          "type": "address"
-        },
-        {
-          "internalType": "address",
           "name": "_collateral",
           "type": "address"
         },
         {
           "internalType": "address",
-          "name": "_trustedForwarder",
+          "name": "initialOwner",
           "type": "address"
         }
       ],
@@ -52,25 +47,19 @@
           "type": "address"
         },
         {
-          "indexed": true,
-          "internalType": "address",
-          "name": "creator",
-          "type": "address"
-        },
-        {
           "indexed": false,
-          "internalType": "string",
-          "name": "question",
-          "type": "string"
+          "internalType": "uint256",
+          "name": "yesAmount",
+          "type": "uint256"
         },
         {
           "indexed": false,
           "internalType": "uint256",
-          "name": "resolveTimestamp",
+          "name": "noAmount",
           "type": "uint256"
         }
       ],
-      "name": "MarketCreated",
+      "name": "Allocated",
       "type": "event"
     },
     {
@@ -79,11 +68,23 @@
         {
           "indexed": true,
           "internalType": "address",
-          "name": "oracleManager",
+          "name": "user",
           "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "sharesMinted",
+          "type": "uint256"
         }
       ],
-      "name": "OracleManagerSet",
+      "name": "Deposited",
       "type": "event"
     },
     {
@@ -106,102 +107,61 @@
       "type": "event"
     },
     {
-      "inputs": [],
-      "name": "collateral",
-      "outputs": [
+      "anonymous": false,
+      "inputs": [
         {
+          "indexed": true,
           "internalType": "address",
-          "name": "",
+          "name": "user",
           "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "sharesBurnt",
+          "type": "uint256"
         }
       ],
-      "stateMutability": "view",
-      "type": "function"
+      "name": "Withdrawn",
+      "type": "event"
     },
     {
       "inputs": [
         {
-          "internalType": "string",
-          "name": "_question",
-          "type": "string"
+          "internalType": "address",
+          "name": "market",
+          "type": "address"
         },
         {
           "internalType": "uint256",
-          "name": "_resolveTimestamp",
+          "name": "yesAmount",
           "type": "uint256"
         },
         {
-          "internalType": "string",
-          "name": "yesName",
-          "type": "string"
-        },
-        {
-          "internalType": "string",
-          "name": "yesSymbol",
-          "type": "string"
-        },
-        {
-          "internalType": "string",
-          "name": "noName",
-          "type": "string"
-        },
-        {
-          "internalType": "string",
-          "name": "noSymbol",
-          "type": "string"
+          "internalType": "uint256",
+          "name": "noAmount",
+          "type": "uint256"
         }
       ],
-      "name": "createMarket",
-      "outputs": [
-        {
-          "internalType": "address",
-          "name": "",
-          "type": "address"
-        }
-      ],
+      "name": "allocateToMarket",
+      "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
     },
     {
       "inputs": [],
-      "name": "defaultFeeBps",
+      "name": "collateral",
       "outputs": [
         {
-          "internalType": "uint256",
+          "internalType": "contract IERC20",
           "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "getMarkets",
-      "outputs": [
-        {
-          "internalType": "address[]",
-          "name": "",
-          "type": "address[]"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "forwarder",
           "type": "address"
-        }
-      ],
-      "name": "isTrustedForwarder",
-      "outputs": [
-        {
-          "internalType": "bool",
-          "name": "",
-          "type": "bool"
         }
       ],
       "stateMutability": "view",
@@ -211,32 +171,13 @@
       "inputs": [
         {
           "internalType": "uint256",
-          "name": "",
+          "name": "amount",
           "type": "uint256"
         }
       ],
-      "name": "markets",
-      "outputs": [
-        {
-          "internalType": "address",
-          "name": "",
-          "type": "address"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "oracleManager",
-      "outputs": [
-        {
-          "internalType": "address",
-          "name": "",
-          "type": "address"
-        }
-      ],
-      "stateMutability": "view",
+      "name": "deposit",
+      "outputs": [],
+      "stateMutability": "nonpayable",
       "type": "function"
     },
     {
@@ -254,6 +195,19 @@
     },
     {
       "inputs": [],
+      "name": "poolBalance",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
       "name": "renounceOwnership",
       "outputs": [],
       "stateMutability": "nonpayable",
@@ -262,27 +216,33 @@
     {
       "inputs": [
         {
-          "internalType": "uint256",
-          "name": "_feeBps",
-          "type": "uint256"
-        }
-      ],
-      "name": "setDefaultFee",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
           "internalType": "address",
-          "name": "_oracleManager",
+          "name": "",
           "type": "address"
         }
       ],
-      "name": "setOracleManager",
-      "outputs": [],
-      "stateMutability": "nonpayable",
+      "name": "shares",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "totalShares",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
       "type": "function"
     },
     {
@@ -299,17 +259,16 @@
       "type": "function"
     },
     {
-      "inputs": [],
-      "name": "trustedForwarder",
-      "outputs": [
+      "inputs": [
         {
-          "internalType": "address",
-          "name": "",
-          "type": "address"
+          "internalType": "uint256",
+          "name": "shareAmount",
+          "type": "uint256"
         }
       ],
-      "stateMutability": "view",
+      "name": "withdraw",
+      "outputs": [],
+      "stateMutability": "nonpayable",
       "type": "function"
     }
   ]
- 

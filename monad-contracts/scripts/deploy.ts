@@ -16,8 +16,8 @@ async function main() {
   const expiration = process.env.EXPIRATION
     ? parseInt(process.env.EXPIRATION)
     : Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60;
-  
-    const yesName = process.env.YES_NAME || "Yes Token";
+
+  const yesName = process.env.YES_NAME || "Yes Token";
   const yesSymbol = process.env.YES_SYMBOL || "YES";
   const noName = process.env.NO_NAME || "No Token";
   const noSymbol = process.env.NO_SYMBOL || "NO";
@@ -27,32 +27,38 @@ async function main() {
   console.log("Expiration:", new Date(expiration * 1000).toLocaleString());
   console.log("Collateral:", collateral);
 
-  // 1. Deploy OracleManager
+  // 1. Deploy MinimalForwarder (for meta transactions)
+  console.log("\nDeploying MinimalForwarder...");
+  const MinimalForwarder = await ethers.getContractFactory("MinimalForwarder");
+  const minimalForwarder = await MinimalForwarder.deploy();
+  await minimalForwarder.deployed();
+  console.log("MinimalForwarder deployed to:", minimalForwarder.address);
+
+  // 2. Deploy OracleManager
   console.log("\nDeploying OracleManager...");
   const OracleManager = await ethers.getContractFactory("OracleManager");
   const oracleManager = await OracleManager.deploy(deployer.address);
   await oracleManager.deployed();
   console.log("OracleManager deployed to:", oracleManager.address);
 
-  // 2. Deploy MarketFactory
+  // 3. Deploy MarketFactory (now with forwarder address)
   console.log("\nDeploying MarketFactory...");
   const MarketFactory = await ethers.getContractFactory("MarketFactory");
-  const marketFactory = await MarketFactory.deploy(deployer.address, collateral);
+  const marketFactory = await MarketFactory.deploy(
+    deployer.address,   // owner
+    collateral,         // collateral token
+    minimalForwarder.address // trusted forwarder
+  );
   await marketFactory.deployed();
   console.log("MarketFactory deployed to:", marketFactory.address);
 
-  // 3. Link contracts
+  // 4. Link contracts
   console.log("\nLinking contracts...");
-  try {
-    const txReg = await marketFactory.setOracleManager(oracleManager.address);
-    await txReg.wait();
-    console.log("Linked MarketFactory -> OracleManager");
-  } catch (e) {
-    console.error("Failed to link contracts:", e);
-    throw e;
-  }
+  const txReg = await marketFactory.setOracleManager(oracleManager.address);
+  await txReg.wait();
+  console.log("Linked MarketFactory -> OracleManager");
 
-  // 4. Create sample market
+  // 5. Create a sample market
   console.log("\nCreating sample market...");
   const tx = await marketFactory.createMarket(
     question,
@@ -63,7 +69,7 @@ async function main() {
     noSymbol
   );
   console.log("Transaction sent:", tx.hash);
-  
+
   const receipt = await tx.wait();
   const event = receipt.events?.find((e: any) => e.event === "MarketCreated");
   if (!event) throw new Error("MarketCreated event not found");
@@ -71,8 +77,10 @@ async function main() {
   const marketAddress = event.args[0];
   console.log("Sample market deployed to:", marketAddress);
 
-  // Summary
+  // ✅ Summary
   console.log("\n📝 Deployment Summary:");
+  console.log("Deployer:", deployer.address);
+  console.log("MinimalForwarder:", minimalForwarder.address);
   console.log("OracleManager:", oracleManager.address);
   console.log("MarketFactory:", marketFactory.address);
   console.log("Sample Market:", marketAddress);

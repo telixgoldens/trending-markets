@@ -7,8 +7,8 @@ async function main() {
 
   const vaultAddress = process.env.LIQUIDITY_VAULT!;
   const marketAddress = process.env.SAMPLE_MARKET_ADDRESS!;
-  const yesAmount = ethers.utils.parseUnits("100", 18); // change as needed
-  const noAmount = ethers.utils.parseUnits("100", 18);  // change as needed
+  const yesAmount = ethers.utils.parseUnits("1000", 18); // change as needed
+  const noAmount = ethers.utils.parseUnits("1000", 18);  // change as needed
 
   const Vault = await ethers.getContractAt("LiquidityVault", vaultAddress);
 

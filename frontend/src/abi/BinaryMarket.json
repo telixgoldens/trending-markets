@@ -50,6 +50,11 @@
           "internalType": "string",
           "name": "noSymbol",
           "type": "string"
+        },
+        {
+          "internalType": "address",
+          "name": "_trustedForwarder",
+          "type": "address"
         }
       ],
       "stateMutability": "nonpayable",
@@ -131,37 +136,6 @@
         }
       ],
       "name": "LiquidityRemoved",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "market",
-          "type": "address"
-        },
-        {
-          "indexed": false,
-          "internalType": "address",
-          "name": "creator",
-          "type": "address"
-        },
-        {
-          "indexed": false,
-          "internalType": "string",
-          "name": "question",
-          "type": "string"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "resolveTimestamp",
-          "type": "uint256"
-        }
-      ],
-      "name": "MarketCreated",
       "type": "event"
     },
     {
@@ -338,6 +312,25 @@
           "internalType": "uint256",
           "name": "noReserve",
           "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "forwarder",
+          "type": "address"
+        }
+      ],
+      "name": "isTrustedForwarder",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
         }
       ],
       "stateMutability": "view",
@@ -602,6 +595,19 @@
     },
     {
       "inputs": [],
+      "name": "trustedForwarder",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
       "name": "winningOutcome",
       "outputs": [
         {
@@ -612,28 +618,5 @@
       ],
       "stateMutability": "view",
       "type": "function"
-    },
-  {
-    "inputs": [
-      { "internalType": "address", "name": "_collateral", "type": "address" },
-      { "internalType": "string", "name": "_question", "type": "string" },
-      { "internalType": "uint256", "name": "_resolveTimestamp", "type": "uint256" },
-      { "internalType": "address", "name": "_oracle", "type": "address" },
-      { "internalType": "uint256", "name": "_feeBps", "type": "uint256" },
-      { "internalType": "address", "name": "creator", "type": "address" },
-      { "internalType": "string", "name": "yesName", "type": "string" },
-      { "internalType": "string", "name": "yesSymbol", "type": "string" },
-      { "internalType": "string", "name": "noName", "type": "string" },
-      { "internalType": "string", "name": "noSymbol", "type": "string" }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
-  },
-  { "inputs": [], "name": "tokenYes", "outputs": [{ "internalType": "address", "name": "", "type": "address" }], "stateMutability": "view", "type": "function" },
-  { "inputs": [], "name": "tokenNo", "outputs": [{ "internalType": "address", "name": "", "type": "address" }], "stateMutability": "view", "type": "function" },
-  { "inputs": [{ "internalType": "uint256", "name": "yesCollateral", "type": "uint256" }, { "internalType": "uint256", "name": "noCollateral", "type": "uint256" }], "name": "addLiquidity", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
-  { "inputs": [{ "internalType": "uint8", "name": "outcomeIndex", "type": "uint8" }, { "internalType": "uint256", "name": "collateralIn", "type": "uint256" }, { "internalType": "uint256", "name": "minTokensOut", "type": "uint256" }], "name": "buy", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
-  { "inputs": [{ "internalType": "uint8", "name": "_winningOutcome", "type": "uint8" }], "name": "resolve", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
-  { "inputs": [{ "internalType": "uint256", "name": "tokensToRedeem", "type": "uint256" }], "name": "redeem", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
-  { "inputs": [], "name": "getReserves", "outputs": [{ "internalType": "uint256", "name": "yesReserve", "type": "uint256" }, { "internalType": "uint256", "name": "noReserve", "type": "uint256" }], "stateMutability": "view", "type": "function" }
-]
+    }
+  ]

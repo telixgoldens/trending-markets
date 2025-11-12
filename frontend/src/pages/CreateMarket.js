@@ -1,56 +1,47 @@
-import React, { useState, useEffect } from "react";
-import { getSigner, getProvider, getMarketFactoryContract } from "../utils/contracts";
-import { initToolkit } from "../utils/smartAccount";
-import { ethers } from "ethers";
+import React, { useState } from "react";
+import { getMarketFactoryContract } from "../utils/contracts";
 import IntentInput from "../components/IntentInput";
+import { useLocation } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { useWallets } from "@privy-io/react-auth";
+import { ethers } from "ethers";
 
 export default function CreateMarket() {
-  const [question, setQuestion] = useState("");
-  const [expiry, setExpiry] = useState(Math.floor(Date.now() / 1000) + 7 * 24 * 3600);
-  const [yesName, setYesName] = useState("Yes Token");
+  const location = useLocation();
+  const intent = location.state?.intent;
+
+  const [question, setQuestion] = useState(() => intent?.condition ?? "");
+  const [expiry, setExpiry] = useState(() =>
+    intent?.date
+      ? Math.floor(new Date(intent.date).getTime() / 1000)
+      : Math.floor(Date.now() / 1000) + 7 * 24 * 3600
+  );
+  const [yesName, setYesName] = useState(() => intent?.yesName ?? "Yes Token");
   const [yesSym, setYesSym] = useState("YES");
-  const [noName, setNoName] = useState("No Token");
+  const [noName, setNoName] = useState(() => intent?.noName ?? "No Token");
   const [noSym, setNoSym] = useState("NO");
   const [status, setStatus] = useState("");
-  const [markets, setMarkets] = useState([]);
-  const [loadingMarkets, setLoadingMarkets] = useState(false);
+  const [analysis] = useState(null);
 
-  const [analysis, setAnalysis] = useState(null);
-  const [analyzing, setAnalyzing] = useState(false);
-
-  async function analyzeMarket() {
-    if (!question) return alert("Enter a question first");
-    setAnalyzing(true);
-    setStatus("Analyzing market...");
-
-    try {
-      const res = await fetch("http://localhost:5000/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question }),
-      });
-
-      const data = await res.json();
-      setAnalysis(data.analysis);
-      setStatus("✅ AI analysis completed");
-    } catch (err) {
-      console.error(err);
-      setStatus("❌ Analysis failed: " + err.message);
-    } finally {
-      setAnalyzing(false);
-    }
-  }
+  const { wallets } = useWallets();
+  const privyWallet = wallets.find(w => w.walletClientType === "privy");
 
   async function create() {
-    try {
-      setStatus("⏳ Connecting smart account...");
-      const toolkit = await initToolkit();
-      await toolkit.connect(); // ensure smart account is connected
+    if (!privyWallet) {
+      setStatus(" Connect your smart account first!");
+      return;
+    }
 
-      setStatus("🚀 Sending transaction...");
-      const signer = await getSigner();
+    try {
+      setStatus("Preparing transaction...");
+
+      
+      const provider = new ethers.providers.Web3Provider(privyWallet.provider);
+      const signer = provider.getSigner();
+
       const factory = getMarketFactoryContract(signer);
 
+      setStatus("Sending transaction...");
       const tx = await factory.createMarket(
         question,
         expiry,
@@ -59,90 +50,226 @@ export default function CreateMarket() {
         noName,
         noSym
       );
-
       await tx.wait();
-      setStatus("✅ Market created — allow few seconds for indexing");
-      await loadMarkets();
+
+      setStatus("Market created successfully!");
     } catch (err) {
       console.error(err);
-      setStatus("❌ Create failed: " + (err.message || err));
+      setStatus("Create failed: " + (err.message || err));
     }
   }
 
-  async function loadMarkets() {
-    try {
-      setLoadingMarkets(true);
-      const provider = getProvider();
-      const factory = getMarketFactoryContract(provider);
-      const list = await factory.getMarkets();
-      setMarkets(list);
-    } catch (err) {
-      console.error("Error loading markets:", err);
-    } finally {
-      setLoadingMarkets(false);
-    }
+  function applySuggestion(suggestion) {
+    if (!suggestion) return;
+    setQuestion(suggestion.question || question);
+    setYesName(suggestion.yesName || "Yes Token");
+    setNoName(suggestion.noName || "No Token");
+    setYesSym(suggestion.yesSym || "YES");
+    setNoSym(suggestion.noSym || "NO");
+    if (suggestion.expiry) setExpiry(suggestion.expiry);
+    setStatus(" Applied AI suggestion!");
   }
-
-  useEffect(() => {
-    loadMarkets();
-    const interval = setInterval(loadMarkets, 10000);
-    return () => clearInterval(interval);
-  }, []);
 
   return (
-    <div className="page">
+    <div className="page container" style={{ color: "#e2e8f0" }}>
       <h1>Create Market</h1>
 
-      {/* AI Intent Input */}
-      <div className="card" style={{ marginBottom: 20 }}>
+      
+      <div className="card shadow-sm mb-4 p-4">
         <h2>AI Intent Assistant</h2>
-        <p>Type natural language like “Create a market on ETH above $3000 by December”.</p>
+        <p>
+          Type natural language like “Create a market on ETH above $3000 by December”.
+        </p>
         <IntentInput />
       </div>
 
-      {/* Manual Market Creation Form */}
-      <div className="card">
-        <label>Question</label>
-        <input value={question} onChange={(e) => setQuestion(e.target.value)} />
 
-        <label>Resolve timestamp (unix)</label>
-        <input value={expiry} onChange={(e) => setExpiry(e.target.value)} />
+      <div
+        style={{
+          background: "#090909ff",
+          border: "1px solid #f0b90b",
+          boxShadow: "0 0 15px #f0b90b",
+          borderRadius: "16px",
+          padding: "2rem",
+          marginTop: "1.5rem",
+        }}
+      >
+        <h2 style={{ color: "#f0b90b", marginBottom: "1rem" }}>Market Setup</h2>
 
-        <label>YES token name / symbol</label>
-        <input value={yesName} onChange={(e) => setYesName(e.target.value)} />
-        <input value={yesSym} onChange={(e) => setYesSym(e.target.value)} />
+        <div style={{ display: "grid", gap: "1.2rem" }}>
+          <div>
+            <label style={{ display: "block", marginBottom: ".3rem" }}>Question</label>
+            <input
+              className="form-control"
+              style={{
+                background: "#111827",
+                color: "#e2e8f0",
+                border: "1px solid #f0b90b",
+                borderRadius: "10px",
+                padding: ".8rem",
+                width: "100%",
+              }}
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              placeholder="Will BTC be above $70,000 by 2025?"
+            />
+          </div>
 
-        <label>NO token name / symbol</label>
-        <input value={noName} onChange={(e) => setNoName(e.target.value)} />
-        <input value={noSym} onChange={(e) => setNoSym(e.target.value)} />
+          <div>
+            <label style={{ display: "block", marginBottom: ".3rem" }}>
+              Resolve Timestamp (UNIX)
+            </label>
+            <input
+              className="form-control"
+              type="number"
+              style={{
+                background: "#111827",
+                color: "#e2e8f0",
+                border: "1px solid #f0b90b",
+                borderRadius: "10px",
+                padding: ".8rem",
+                width: "100%",
+              }}
+              value={expiry}
+              onChange={(e) => setExpiry(e.target.value)}
+            />
+          </div>
 
-        <div style={{ marginTop: 12 }}>
-          <button onClick={create} className="btn">
+          <div>
+            <label style={{ display: "block", marginBottom: ".3rem" }}>YES Token</label>
+            <div style={{ display: "flex", gap: "1rem" }}>
+              <input
+                className="form-control"
+                style={{
+                  flex: 1,
+                  background: "#111827",
+                  color: "#e2e8f0",
+                  border: "1px solid #f0b90b",
+                  borderRadius: "10px",
+                  padding: ".8rem",
+                }}
+                value={yesName}
+                onChange={(e) => setYesName(e.target.value)}
+              />
+              <input
+                className="form-control"
+                style={{
+                  width: "100px",
+                  background: "#111827",
+                  color: "#e2e8f0",
+                  border: "1px solid #f0b90b",
+                  borderRadius: "10px",
+                  padding: ".8rem",
+                }}
+                value={yesSym}
+                onChange={(e) => setYesSym(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label style={{ display: "block", marginBottom: ".3rem" }}>NO Token</label>
+            <div style={{ display: "flex", gap: "1rem" }}>
+              <input
+                className="form-control"
+                style={{
+                  flex: 1,
+                  background: "#111827",
+                  color: "#e2e8f0",
+                  border: "1px solid #f0b90b",
+                  borderRadius: "10px",
+                  padding: ".8rem",
+                }}
+                value={noName}
+                onChange={(e) => setNoName(e.target.value)}
+              />
+              <input
+                className="form-control"
+                style={{
+                  width: "100px",
+                  background: "#111827",
+                  color: "#e2e8f0",
+                  border: "1px solid #f0b90b",
+                  borderRadius: "10px",
+                  padding: ".8rem",
+                }}
+                value={noSym}
+                onChange={(e) => setNoSym(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: "1rem", marginTop: "1.5rem" }}>
+          <button
+            onClick={create}
+            style={{
+              flex: 1,
+              background: "#f0b90b",
+              color: "#101010ff",
+              border: "none",
+              borderRadius: "10px",
+              padding: ".8rem",
+              fontWeight: "600",
+              boxShadow: "0 0 10px #f0b90b",
+              cursor: "pointer",
+              transition: "0.3s",
+            }}
+            onMouseEnter={(e) => (e.target.style.boxShadow = "0 0 20px #f0b90b")}
+            onMouseLeave={(e) => (e.target.style.boxShadow = "0 0 10px  #f0b90b")}
+          >
             Create Market
           </button>
         </div>
-        <div style={{ marginTop: 8 }}>{status}</div>
+
+        {status && <p style={{ marginTop: "1rem", color: "#93c5fd" }}>{status}</p>}
       </div>
 
-      {/* Markets list */}
-      <div className="card" style={{ marginTop: 20 }}>
-        <h2>All Markets</h2>
-        {loadingMarkets ? (
-          <div>Loading markets...</div>
-        ) : markets.length > 0 ? (
-          <ul>
-            {markets.map((addr, i) => (
-              <li key={i}>
-                <a href={`/market/${addr}`} style={{ color: "#2563eb" }}>
-                  {addr}
-                </a>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <div>No markets yet</div>
+      
+      <AnimatePresence>
+        {analysis && (
+          <motion.div
+            key="ai-analysis"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="card p-4 mt-3 bg-light"
+          >
+            <h4>AI Market Insights</h4>
+            <p>
+              <strong>Trend:</strong> {analysis.trend}
+            </p>
+            <p>
+              <strong>Confidence:</strong> {(analysis.confidence * 100).toFixed(1)}%
+            </p>
+            <p>
+              <strong>Summary:</strong> {analysis.summary}
+            </p>
+
+            {analysis.suggestion && (
+              <div className="mt-3">
+                <h5>Suggested Setup:</h5>
+                <div className="border p-3 rounded bg-white shadow-sm">
+                  <p>
+                    <strong>Question:</strong> {analysis.suggestion.question}
+                  </p>
+                  <p>
+                    <strong>Tokens:</strong> {analysis.suggestion.yesName} /{" "}
+                    {analysis.suggestion.noName}
+                  </p>
+                  <button
+                    className="btn btn-outline-primary mt-2"
+                    onClick={() => applySuggestion(analysis.suggestion)}
+                  >
+                    Apply Suggestion
+                  </button>
+                </div>
+              </div>
+            )}
+          </motion.div>
         )}
-      </div>
+      </AnimatePresence>
     </div>
   );
 }

@@ -8,7 +8,7 @@ dataSources:
     name: MarketFactory
     network: chapel
     source:
-      address: "0xd490A2739475B40908C83e2c21512a9876D093c8"
+      address: "0xa164Aa414cbB0b53574C570f7072dD6c5Df8e936"
       abi: MarketFactory
     mapping:
       kind: ethereum/events

@@ -3,14 +3,15 @@ pragma solidity ^0.8.28;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/metatx/ERC2771Context.sol";
 import "./OutcomeToken.sol";
 
-contract BinaryMarket is Ownable {
+contract BinaryMarket is Ownable, ERC2771Context {
     OutcomeToken public tokenYes;
     OutcomeToken public tokenNo;
     IERC20 public collateral;
 
-    uint256 public feeBps; 
+    uint256 public feeBps;
     bool public resolved;
     uint8 public winningOutcome;
 
@@ -24,7 +25,6 @@ contract BinaryMarket is Ownable {
     uint256 public resolveTimestamp;
     address public oracle;
 
-    
     event LiquidityAdded(address indexed provider, uint256 yesAmount, uint256 noAmount, uint256 shares);
     event LiquidityRemoved(address indexed provider, uint256 collateralOut, uint256 shares);
     event Swap(address indexed trader, uint8 outcomeIndex, uint256 collateralIn, uint256 tokensOut, uint256 fee);
@@ -37,7 +37,8 @@ contract BinaryMarket is Ownable {
     }
 
     modifier onlyOracleOrOwner() {
-        require(msg.sender == oracle || msg.sender == owner(), "Not authorized");
+        address sender = _msgSender();
+        require(sender == oracle || sender == owner(), "Not authorized");
         _;
     }
 
@@ -51,8 +52,9 @@ contract BinaryMarket is Ownable {
         string memory yesName,
         string memory yesSymbol,
         string memory noName,
-        string memory noSymbol
-    ) Ownable(creator) {
+        string memory noSymbol,
+        address _trustedForwarder
+    ) Ownable(creator) ERC2771Context(_trustedForwarder) {
         collateral = IERC20(_collateral);
         question = _question;
         resolveTimestamp = _resolveTimestamp;
@@ -65,34 +67,48 @@ contract BinaryMarket is Ownable {
 
         tokenYes.transferOwnership(address(this));
         tokenNo.transferOwnership(address(this));
+    }
 
-        
+    // Override required because both Context and ERC2771Context provide _msgSender/_msgData
+    function _msgSender() internal view override(Context, ERC2771Context) returns (address sender) {
+        return ERC2771Context._msgSender();
+    }
+
+    function _msgData() internal view override(Context, ERC2771Context) returns (bytes calldata) {
+        return ERC2771Context._msgData();
+    }
+    
+     // Both Context and ERC2771Context define _contextSuffixLength(), so explicitly override
+    function _contextSuffixLength() internal view override(Context, ERC2771Context) returns (uint256) {
+        return ERC2771Context._contextSuffixLength();
     }
 
     function addLiquidity(uint256 yesCollateral, uint256 noCollateral) external whenNotResolved {
+        address sender = _msgSender();
         require(yesCollateral > 0 || noCollateral > 0, "Zero deposit");
 
         if (yesCollateral > 0) {
-            require(collateral.transferFrom(msg.sender, address(this), yesCollateral), "Transfer failed");
+            require(collateral.transferFrom(sender, address(this), yesCollateral), "Transfer failed");
             reserveYes += yesCollateral;
-            tokenYes.mint(msg.sender, yesCollateral);
+            tokenYes.mint(sender, yesCollateral);
         }
         if (noCollateral > 0) {
-            require(collateral.transferFrom(msg.sender, address(this), noCollateral), "Transfer failed");
+            require(collateral.transferFrom(sender, address(this), noCollateral), "Transfer failed");
             reserveNo += noCollateral;
-            tokenNo.mint(msg.sender, noCollateral);
+            tokenNo.mint(sender, noCollateral);
         }
 
         uint256 shares = yesCollateral + noCollateral;
         if (shares > 0) {
-            lpShares[msg.sender] += shares;
+            lpShares[sender] += shares;
             totalLpShares += shares;
-            emit LiquidityAdded(msg.sender, yesCollateral, noCollateral, shares);
+            emit LiquidityAdded(sender, yesCollateral, noCollateral, shares);
         }
     }
 
     function removeLiquidity(uint256 shares) external {
-        require(shares > 0 && lpShares[msg.sender] >= shares, "Invalid shares");
+        address sender = _msgSender();
+        require(shares > 0 && lpShares[sender] >= shares, "Invalid shares");
         require(totalLpShares > 0, "No LP");
 
         uint256 collateralYesOut = (reserveYes * shares) / totalLpShares;
@@ -101,18 +117,19 @@ contract BinaryMarket is Ownable {
 
         reserveYes -= collateralYesOut;
         reserveNo -= collateralNoOut;
-        lpShares[msg.sender] -= shares;
+        lpShares[sender] -= shares;
         totalLpShares -= shares;
 
-        require(collateral.transfer(msg.sender, totalOut), "Transfer failed");
-        emit LiquidityRemoved(msg.sender, totalOut, shares);
+        require(collateral.transfer(sender, totalOut), "Transfer failed");
+        emit LiquidityRemoved(sender, totalOut, shares);
     }
 
     function buy(uint8 outcomeIndex, uint256 collateralIn, uint256 minTokensOut) external whenNotResolved {
+        address sender = _msgSender();
         require(outcomeIndex == 0 || outcomeIndex == 1, "Bad outcome");
         require(collateralIn > 0, "Zero collateral");
 
-         // Snapshot reserves for pricing before changing them
+        // Snapshot reserves for pricing before changing them
         uint256 rYes = reserveYes;
         uint256 rNo = reserveNo;
 
@@ -133,32 +150,29 @@ contract BinaryMarket is Ownable {
         // If collateral was already transferred to this contract (e.g., router forwarded it),
         // skip transferFrom. Otherwise, try to pull tokens from the caller.
         uint256 balanceBefore = collateral.balanceOf(address(this));
-        // expected balance after a successful direct transfer would be balanceBefore + collateralIn
-        // but we compare against internal reserves sum (rYes + rNo) for sanity:
-     
-     if (balanceBefore < (rYes + rNo) + collateralIn) {
+        if (balanceBefore < (rYes + rNo) + collateralIn) {
             // attempt to pull tokens from the caller (works when caller is the user and approved this market)
-            require(collateral.transferFrom(msg.sender, address(this), collateralIn), "Transfer failed");
+            require(collateral.transferFrom(sender, address(this), collateralIn), "Transfer failed");
         }
 
         // now update reserves after tokens are in contract
         if (outcomeIndex == 1) {
             reserveYes += net;
-        } 
-        else {
+        } else {
             reserveNo += net;
         }
 
         if (outcomeIndex == 1) {
-            tokenYes.mint(msg.sender, tokensOut);
+            tokenYes.mint(sender, tokensOut);
         } else {
-            tokenNo.mint(msg.sender, tokensOut);
+            tokenNo.mint(sender, tokensOut);
         }
 
-        emit Swap(msg.sender, outcomeIndex, collateralIn, tokensOut, fee);
+        emit Swap(sender, outcomeIndex, collateralIn, tokensOut, fee);
     }
 
     function sell(uint8 outcomeIndex, uint256 tokensIn, uint256 minCollateralOut) external whenNotResolved {
+        address sender = _msgSender();
         require(outcomeIndex == 0 || outcomeIndex == 1, "Bad outcome");
         require(tokensIn > 0, "Zero tokens");
 
@@ -166,17 +180,17 @@ contract BinaryMarket is Ownable {
         if (outcomeIndex == 1) {
             require(reserveYes + tokensIn > 0, "Invalid math");
             collateralOut = (tokensIn * reserveNo) / (reserveYes + tokensIn);
-            tokenYes.burn(msg.sender, tokensIn);
+            tokenYes.burn(sender, tokensIn);
             reserveNo -= collateralOut;
         } else {
             collateralOut = (tokensIn * reserveYes) / (reserveNo + tokensIn);
-            tokenNo.burn(msg.sender, tokensIn);
+            tokenNo.burn(sender, tokensIn);
             reserveYes -= collateralOut;
         }
 
         require(collateralOut >= minCollateralOut, "Slippage");
-        require(collateral.transfer(msg.sender, collateralOut), "Transfer failed");
-        emit Swap(msg.sender, outcomeIndex, collateralOut, tokensIn, 0);
+        require(collateral.transfer(sender, collateralOut), "Transfer failed");
+        emit Swap(sender, outcomeIndex, collateralOut, tokensIn, 0);
     }
 
     function resolve(uint8 _winningOutcome) external onlyOracleOrOwner {
@@ -189,24 +203,25 @@ contract BinaryMarket is Ownable {
     }
 
     function redeem(uint256 tokensToRedeem) external {
+        address sender = _msgSender();
         require(resolved, "Not resolved");
         require(tokensToRedeem > 0, "Zero");
 
         uint256 payout;
         if (winningOutcome == 1) {
-            tokenYes.burn(msg.sender, tokensToRedeem);
+            tokenYes.burn(sender, tokensToRedeem);
             payout = tokensToRedeem;
             require(reserveYes >= payout, "Insufficient reserve");
             reserveYes -= payout;
         } else {
-            tokenNo.burn(msg.sender, tokensToRedeem);
+            tokenNo.burn(sender, tokensToRedeem);
             payout = tokensToRedeem;
             require(reserveNo >= payout, "Insufficient reserve");
             reserveNo -= payout;
         }
 
-        require(collateral.transfer(msg.sender, payout), "Transfer failed");
-        emit Redeemed(msg.sender, tokensToRedeem, payout);
+        require(collateral.transfer(sender, payout), "Transfer failed");
+        emit Redeemed(sender, tokensToRedeem, payout);
     }
 
     function setOracle(address _oracle) external onlyOwner {

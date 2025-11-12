@@ -1,0 +1,30 @@
+[
+    {
+      "inputs": [
+        {
+          "internalType": "address[]",
+          "name": "markets",
+          "type": "address[]"
+        },
+        {
+          "internalType": "uint8",
+          "name": "outcomeIndex",
+          "type": "uint8"
+        },
+        {
+          "internalType": "uint256",
+          "name": "collateralIn",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "minTokensOut",
+          "type": "uint256"
+        }
+      ],
+      "name": "routeBuy",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ]

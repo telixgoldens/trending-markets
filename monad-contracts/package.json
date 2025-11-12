@@ -2,23 +2,26 @@
   "name": "monad-contracts",
   "version": "1.0.0",
   "scripts": {
+     "codegen": "graph codegen",
+    "build": "graph build",
+    "create-local": "graph create --node http://localhost:8020/ trending-markets",
+    "remove-local": "graph remove --node http://localhost:8020/ trending-markets",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 trending-markets",
     "compile": "hardhat compile",
     "deploy": "hardhat run scripts/deploy.ts --network sepolia"
   },
   "devDependencies": {
-    "@graphprotocol/graph-cli": "^0.98.1",
-    "@graphprotocol/graph-ts": "^0.38.2",
-    "@nomicfoundation/hardhat-verify": "^3.0.4",
     "@nomiclabs/hardhat-ethers": "^2.2.3",
-    "@nomiclabs/hardhat-etherscan": "^3.1.8",
     "@types/node": "^22.0.0",
     "dotenv": "^17.2.2",
     "ethers": "^5.7.2",
     "hardhat": "^2.26.3",
     "ts-node": "^10.9.1",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "@graphprotocol/graph-cli": "^0.68.0"
   },
   "dependencies": {
+    "@graphprotocol/graph-ts": "^0.31.0",
     "@openzeppelin/contracts": "^5.4.0"
   }
 }

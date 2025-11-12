@@ -1,9 +1,19 @@
 import OpenAI from "openai";
 
+const OPENAI_KEY =
+  process.env.REACT_APP_OPENAI_API_KEY ||
+  (typeof globalThis !== "undefined" ? globalThis.__VITE_OPENAI_API_KEY : "") ||
+  "";
+
+if (!OPENAI_KEY) {
+  console.warn("OpenAI API key not set. Set VITE_OPENAI_API_KEY (Vite) or REACT_APP_OPENAI_API_KEY (CRA) in your .env");
+}
+
 const client = new OpenAI({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true, // only for local dev — use backend proxy in prod
+  apiKey: OPENAI_KEY,
+  dangerouslyAllowBrowser: true,
 });
+
 
 // Step 1: Parse user intent into JSON
 export async function parseIntent(userText) {

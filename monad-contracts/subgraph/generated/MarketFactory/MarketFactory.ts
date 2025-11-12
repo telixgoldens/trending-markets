@@ -185,6 +185,29 @@ export class MarketFactory extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toAddressArray());
   }
 
+  isTrustedForwarder(forwarder: Address): boolean {
+    let result = super.call(
+      "isTrustedForwarder",
+      "isTrustedForwarder(address):(bool)",
+      [ethereum.Value.fromAddress(forwarder)],
+    );
+
+    return result[0].toBoolean();
+  }
+
+  try_isTrustedForwarder(forwarder: Address): ethereum.CallResult<boolean> {
+    let result = super.tryCall(
+      "isTrustedForwarder",
+      "isTrustedForwarder(address):(bool)",
+      [ethereum.Value.fromAddress(forwarder)],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toBoolean());
+  }
+
   markets(param0: BigInt): Address {
     let result = super.call("markets", "markets(uint256):(address)", [
       ethereum.Value.fromUnsignedBigInt(param0),
@@ -237,6 +260,29 @@ export class MarketFactory extends ethereum.SmartContract {
     let value = result.value;
     return ethereum.CallResult.fromValue(value[0].toAddress());
   }
+
+  trustedForwarder(): Address {
+    let result = super.call(
+      "trustedForwarder",
+      "trustedForwarder():(address)",
+      [],
+    );
+
+    return result[0].toAddress();
+  }
+
+  try_trustedForwarder(): ethereum.CallResult<Address> {
+    let result = super.tryCall(
+      "trustedForwarder",
+      "trustedForwarder():(address)",
+      [],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toAddress());
+  }
 }
 
 export class ConstructorCall extends ethereum.Call {
@@ -262,6 +308,10 @@ export class ConstructorCall__Inputs {
 
   get _collateral(): Address {
     return this._call.inputValues[1].value.toAddress();
+  }
+
+  get _trustedForwarder(): Address {
+    return this._call.inputValues[2].value.toAddress();
   }
 }
 

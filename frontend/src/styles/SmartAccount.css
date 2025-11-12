@@ -1,0 +1,42 @@
+.smart-connect {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 10px 0;
+}
+
+.btn-connect {
+  background: #f3ba2f;
+  color: black;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-connect:hover {
+  background: #f3ba2f;
+}
+
+.wallet-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  background: #f1f5f9;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  color: #0f172a;
+  gap: 4px;
+}
+
+.wallet-addr {
+  font-weight: 600;
+}
+
+.wallet-chain {
+  font-size: 0.85rem;
+  color: #475569;
+}

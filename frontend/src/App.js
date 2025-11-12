@@ -1,17 +1,20 @@
 import React, { useEffect, useState } from "react";
 import { ensureCorrectNetwork } from "./utils/network";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Sidebar from "./components/Sidebar";
 import Navbar from "./components/Navbar";
 import Dashboard from "./pages/Dashboard";
-import Markets from "./pages/Markets";
+import MarketList from "./components/MarketList"; 
 import MarketDetail from "./pages/MarketDetail";
 import CreateMarket from "./pages/CreateMarket";
 import Profile from "./pages/Profile";
-import "./styles/Pages.css";
+import Settings from "./pages/Settings";
+import { usePrivy } from "@privy-io/react-auth";
+import "./styles/App.css";
 
 function App() {
   const [networkOk, setNetworkOk] = useState(true);
+  const { user } = usePrivy();
+
 
   useEffect(() => {
     async function checkNetwork() {
@@ -21,7 +24,6 @@ function App() {
 
     checkNetwork();
 
-    // recheck when user switches network manually
     if (window.ethereum) {
       window.ethereum.on("chainChanged", () => window.location.reload());
     }
@@ -30,30 +32,31 @@ function App() {
   if (!networkOk) {
     return (
       <div className="page">
-        <h2 style={{ color: "red" }}>⚠️ Wrong Network</h2>
+        <h2 style={{ color: "red" }}>Wrong Network</h2>
         <p>
-          Please switch to the <strong>Monad Testnet</strong> in MetaMask.
+          Please switch to the <strong>BnB Testnet</strong> in MetaMask.
         </p>
       </div>
     );
   }
+
   return (
     <Router>
-      <div className="app">
-        <Sidebar />
         <div className="main">
           <Navbar />
           <main className="content">
             <Routes>
               <Route path="/" element={<Dashboard />} />
-              <Route path="/markets" element={<Markets />} />
+              <Route path="/markets" element={<MarketList user={user} />} /> {/* ✅ fixed */}
               <Route path="/markets/:address" element={<MarketDetail />} />
               <Route path="/create" element={<CreateMarket />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/settings" element={<Settings />} />
+
             </Routes>
           </main>
         </div>
-      </div>
+      
     </Router>
   );
 }
