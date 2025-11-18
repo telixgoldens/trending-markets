@@ -14,14 +14,14 @@ app.use(bodyParser.json());
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-// helper: extract JSON from completion text (handles ```json blocks or plain JSON)
+
 function extractJsonFromText(text) {
   if (!text || typeof text !== "string") throw new Error("No text to parse");
-  // first look for fenced JSON block: ```json ... ``` or ``` ... ```
+  
   const fenceRe = /```(?:json)?\s*([\s\S]*?)```/i;
   const m = text.match(fenceRe);
   const candidate = m ? m[1].trim() : text.trim();
-  // try direct JSON.parse, else try to find first {...} substring
+  
   try {
     return JSON.parse(candidate);
   } catch (err) {
@@ -34,8 +34,6 @@ function extractJsonFromText(text) {
   }
 }
 
-
-// ✅ 1. Intent route
 app.post("/api/intent", async (req, res) => {
   try {
     const { text } = req.body;
@@ -55,12 +53,11 @@ Return JSON fields:
     const result = extractJsonFromText(rawText);
     return res.json({ intent: result });
   } catch (err) {
-    console.error("❌ Intent parsing failed:", err);
+    console.error("Intent parsing failed:", err);
     res.status(500).json({ error: "Failed to parse intent" });
   }
 });
 
-// ✅ 2. AI Market Analysis route
 app.post("/api/analyze", async (req, res) => {
   try {
     const { asset, question } = req.body;
@@ -92,11 +89,10 @@ Return a JSON object like:
     const analysis = extractJsonFromText(rawText);
     res.json({ analysis });
   } catch (err) {
-    console.error("❌ AI analysis failed:", err);
+    console.error("AI analysis failed:", err);
     res.status(500).json({ error: "AI analysis failed" });
   }
   
 });
 
-// ✅ 3. Start the server
-app.listen(5000, () => console.log("✅ Server running on port 5000"));
+app.listen(5000, () => console.log("Server running on port 5000"));

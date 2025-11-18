@@ -20,7 +20,6 @@ async function main() {
   console.log("user balance:", ethers.utils.formatUnits(await Collateral.balanceOf(user.address), 18));
   console.log("allowance to router:", ethers.utils.formatUnits(await Collateral.allowance(user.address, routerAddr), 18));
 
-  // 1) simulate router.transferFrom(user -> market) by calling token.transferFrom with msg.sender = router
   try {
     const txData = Collateral.interface.encodeFunctionData("transferFrom", [user.address, marketAddr, amount]);
     const callRes = await ethers.provider.call({
@@ -37,7 +36,6 @@ async function main() {
     }
   }
 
-  // 2) callStatic routeBuy to capture revert payload
   try {
     await Router.callStatic.routeBuy([marketAddr], 1, amount, 0, { from: user.address });
     console.log("callStatic.routeBuy succeeded (would not revert)");
@@ -58,7 +56,6 @@ async function main() {
     }
   }
 
-  // 3) show getReserves and quick sanity
   try {
     const reserves = await Market.getReserves();
     console.log("market reserves:", ethers.utils.formatUnits(reserves[0],18), ethers.utils.formatUnits(reserves[1],18));

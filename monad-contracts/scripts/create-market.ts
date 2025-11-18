@@ -7,13 +7,13 @@ async function main() {
   const factory = await ethers.getContractAt("MarketFactory", factoryAddress);
 
   const question = "Will the World Denuclearize by the end of the yeear?";
-  const resolveTime = Math.floor(Date.now() / 1000) + 3 * 24 * 3600; // 3 days
+  const resolveTime = Math.floor(Date.now() / 1000) + 3 * 24 * 3600; 
   const yesName = "Yes Token";
   const yesSymbol = "Yes";
   const noName = "No Token";
   const noSymbol = "No";
 
-  console.log("🚀 Creating market...");
+  console.log(" Creating market...");
   const tx = await factory.createMarket(
     question,
     resolveTime,
@@ -28,14 +28,14 @@ async function main() {
   const receipt = await tx.wait();
   const event = receipt.events?.find((e: any) => e.event === "MarketCreated");
   if (event) {
-    console.log("✅ Market created successfully!");
+    console.log(" Market created successfully!");
     console.log("Market address:", event.args[0]);
   } else {
-    console.log("⚠️ No MarketCreated event found in receipt.");
+    console.log(" No MarketCreated event found in receipt.");
   }
 }
 
 main().catch((err) => {
-  console.error("❌ Error:", err);
+  console.error(" Error:", err);
   process.exitCode = 1;
 });

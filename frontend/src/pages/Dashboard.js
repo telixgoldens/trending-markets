@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { getMarketFactoryContract, getProvider } from "../utils/contracts";
+import { getMarketFactoryContract } from "../utils/contracts";
 import MarketCard from "../components/MarketCard";
+import PropTypes from "prop-types";
 import { ethers } from "ethers";
 import BinaryMarketAbi from "../abi/BinaryMarket.json";
 import "../styles/MarketCard.css"; 
-
 
 
 export default function Dashboard() {
@@ -13,35 +13,33 @@ export default function Dashboard() {
   const [page, setPage] = useState(1);
   const perPage = 20;
 
-
   useEffect(() => {
     async function loadMarkets() {
       try {
         setLoading(true);
-        const provider = getProvider();
+        if (!window.ethereum) throw new Error("MetaMask not installed");
+
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
         const factory = getMarketFactoryContract(provider);
         const list = await factory.getMarkets();
 
         const marketsData = await Promise.all(
           list.map(async (addr) => {
-            const contract = new ethers.Contract(
-              addr,
-              BinaryMarketAbi,
-              provider
-            );
+            const contract = new ethers.Contract(addr, BinaryMarketAbi, provider);
             let question = "Unknown";
             let resolveTimestamp = null;
 
             try {
               question = await contract.question();
-            } catch (error) {
-              console.error("An error occurred:", error);
+            } catch (err) {
+              console.error("Error fetching question:", err);
             }
+
             try {
               const rt = await contract.resolveTimestamp();
               resolveTimestamp = rt?.toNumber ? rt.toNumber() : rt;
-            } catch (error) {
-              console.error("An error occurred:", error);
+            } catch (err) {
+              console.error("Error fetching resolveTimestamp:", err);
             }
 
             return { address: addr, question, resolveTimestamp };
@@ -57,7 +55,7 @@ export default function Dashboard() {
     }
 
     loadMarkets();
-    const interval = setInterval(loadMarkets, 20 * 60 * 1000); 
+    const interval = setInterval(loadMarkets, 20 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -69,14 +67,13 @@ export default function Dashboard() {
       <h1>Dashboard</h1>
       <p>Active Markets</p>
 
-
       {loading ? (
         <div className="card">Loading markets...</div>
       ) : markets.length === 0 ? (
         <div className="card">No markets found.</div>
       ) : (
         <>
-         <div className="market-grid">
+          <div className="market-grid">
             {paginatedMarkets.map((m) => (
               <MarketCard key={m.address} market={m} />
             ))}
@@ -98,3 +95,5 @@ export default function Dashboard() {
     </div>
   );
 }
+MarketCard.propTypes = {
+onWatchlistChange: PropTypes.func.isRequired,}

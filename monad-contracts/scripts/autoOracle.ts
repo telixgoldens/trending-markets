@@ -18,14 +18,14 @@ async function main() {
   const resolved = await BinaryMarket.resolved();
   if (resolved) {
     const winningOutcome = await BinaryMarket.winningOutcome();
-    console.log(`✅ Market already resolved with outcome: ${winningOutcome.toString() === "1" ? "YES" : "NO"}`);
+    console.log(`Market already resolved with outcome: ${winningOutcome.toString() === "1" ? "YES" : "NO"}`);
     return;
   }
 
-  console.log("⚙️ Setting dispute window to 30 seconds...");
+  console.log("Setting dispute window to 30 seconds...");
   await OracleManager.setDisputeWindow(30);
 
-  console.log("📤 Proposing AI resolution...");
+  console.log(" Proposing AI resolution...");
   const proposeTx = await OracleManager.proposeAIResolution(marketAddr, 1);
   const proposeReceipt = await proposeTx.wait();
 
@@ -40,36 +40,34 @@ async function main() {
     } catch {}
   }
 
-  if (!proposalId) throw new Error("❌ No ProposalCreated event found.");
-  console.log(`✅ Proposal created (ID: ${proposalId.toString()})`);
+  if (!proposalId) throw new Error(" No ProposalCreated event found.");
+  console.log(` Proposal created (ID: ${proposalId.toString()})`);
 
   let proposal = await OracleManager.proposals(proposalId);
   const disputeDeadline = proposal.disputeDeadline.toNumber();
 
-  console.log("📅 Dispute deadline:", new Date(disputeDeadline * 1000).toLocaleTimeString());
+  console.log(" Dispute deadline:", new Date(disputeDeadline * 1000).toLocaleTimeString());
   console.log("Outcome proposed:", proposal.proposedOutcome.toString());
 
   
-  
-  // Wait for dispute window to end
   const now = Math.floor(Date.now() / 1000);
   const waitSeconds = disputeDeadline - now;
   if (waitSeconds > 0) {
-    console.log(`🕒 Waiting ${waitSeconds}s for dispute window to end...`);
+    console.log(`Waiting ${waitSeconds}s for dispute window to end...`);
     await new Promise(r => setTimeout(r, waitSeconds * 1000 + 2000));
   }
 
-  console.log("⚡ Finalizing proposal...");
+  console.log("Finalizing proposal...");
   try {
     const finalizeTx = await OracleManager.finalizeProposal(proposalId);
     await finalizeTx.wait();
-    console.log("✅ Market finalized successfully!");
+    console.log("Market finalized successfully!");
   } catch (err: any) {
-    console.error("❌ Finalization failed:", err.message);
+    console.error("Finalization failed:", err.message);
   }
 
   const finalOutcome = await BinaryMarket.winningOutcome();
-  console.log(`🏁 Final outcome: ${finalOutcome.toString() === "1" ? "YES" : "NO"}`);
+  console.log(` Final outcome: ${finalOutcome.toString() === "1" ? "YES" : "NO"}`);
 }
 
 main().catch((err) => {

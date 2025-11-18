@@ -61,7 +61,6 @@ contract BinaryMarket is Ownable, ERC2771Context {
         oracle = _oracle;
         feeBps = _feeBps;
 
-        // Deploy YES / NO tokens
         tokenYes = new OutcomeToken(yesName, yesSymbol, address(this));
         tokenNo = new OutcomeToken(noName, noSymbol, address(this));
 
@@ -69,7 +68,6 @@ contract BinaryMarket is Ownable, ERC2771Context {
         tokenNo.transferOwnership(address(this));
     }
 
-    // Override required because both Context and ERC2771Context provide _msgSender/_msgData
     function _msgSender() internal view override(Context, ERC2771Context) returns (address sender) {
         return ERC2771Context._msgSender();
     }
@@ -78,7 +76,6 @@ contract BinaryMarket is Ownable, ERC2771Context {
         return ERC2771Context._msgData();
     }
     
-     // Both Context and ERC2771Context define _contextSuffixLength(), so explicitly override
     function _contextSuffixLength() internal view override(Context, ERC2771Context) returns (uint256) {
         return ERC2771Context._contextSuffixLength();
     }
@@ -129,7 +126,6 @@ contract BinaryMarket is Ownable, ERC2771Context {
         require(outcomeIndex == 0 || outcomeIndex == 1, "Bad outcome");
         require(collateralIn > 0, "Zero collateral");
 
-        // Snapshot reserves for pricing before changing them
         uint256 rYes = reserveYes;
         uint256 rNo = reserveNo;
 
@@ -147,15 +143,12 @@ contract BinaryMarket is Ownable, ERC2771Context {
 
         require(tokensOut > 0 && tokensOut >= minTokensOut, "Slippage");
 
-        // If collateral was already transferred to this contract (e.g., router forwarded it),
-        // skip transferFrom. Otherwise, try to pull tokens from the caller.
+       
         uint256 balanceBefore = collateral.balanceOf(address(this));
         if (balanceBefore < (rYes + rNo) + collateralIn) {
-            // attempt to pull tokens from the caller (works when caller is the user and approved this market)
             require(collateral.transferFrom(sender, address(this), collateralIn), "Transfer failed");
         }
 
-        // now update reserves after tokens are in contract
         if (outcomeIndex == 1) {
             reserveYes += net;
         } else {

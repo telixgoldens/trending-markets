@@ -2,7 +2,7 @@ import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import navLogo from "../assets/trending-logo.jpg";
 import PropTypes from "prop-types";
-import SmartAccountConnect from "./SmartAccountConnect";
+import WalletConnect from "./WalletConnect"; 
 import "../styles/Navbar.css";
 
 export default function Navbar({ onTimeframeChange, currentTimeframe }) {
@@ -53,11 +53,12 @@ export default function Navbar({ onTimeframeChange, currentTimeframe }) {
         </div>
 
         <input className="tm-search" placeholder="Search markets..." />
-        <SmartAccountConnect />
+        <WalletConnect />
       </div>
     </header>
   );
 }
+
 Navbar.propTypes = {
   onTimeframeChange: PropTypes.func,
   currentTimeframe: PropTypes.string,

@@ -1,159 +1,132 @@
-import React, { useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import PropTypes from "prop-types";
-import { Link } from "react-router-dom";
+import { ethers } from "ethers";
+import { useWallet } from "../utils/wallet"; 
+import {
+  getBinaryMarketContract,
+  getMockERC20,
+} from "../utils/contracts";
 import "../styles/MarketCard.css";
 
-export default function MarketCard({ market, user, onWatchlistChange }) {
-  const [isWatching, setIsWatching] = useState(market.isWatching || false);
-  const resolveTs =
-    market.resolveTimestamp ??
-    market.resolveTime ??
-    market.resolveAt ??
-    market.resolveTimestamp;
-  const resolveAt = resolveTs ? new Date(resolveTs) : null;
-  const address = market.address || "";
-  
-let volume = "—";
-try {
-  if (market.volume) {
-    
-    const volNum =
-      typeof market.volume === "string" && market.volume.startsWith("0x")
-        ? parseInt(market.volume, 16)
-        : parseFloat(market.volume);
+export default function MarketCard({ market }) {
+  const { signer, address } = useWallet();  
+  const [yesBalance, setYesBalance] = useState("0");
+  const [noBalance, setNoBalance] = useState("0");
+  const [amount, setAmount] = useState("");
+  const [status, setStatus] = useState("");
+  const [resolved, setResolved] = useState(market.resolved);
+  const [outcome, setOutcome] = useState(null);
 
-    const adjusted = volNum / 1e18;
+  const readyToWrite = !!signer;
 
-    if (adjusted >= 1_000_000) {
-      volume = (adjusted / 1_000_000).toFixed(2) + "M";
-    } else if (adjusted >= 1_000) {
-      volume = (adjusted / 1_000).toFixed(2) + "K";
-    } else {
-      volume = adjusted.toFixed(2);
-    }
+  const marketContract = useMemo(() => {
+    if (!market.address) return null;
+    return getBinaryMarketContract(market.address, signer || undefined);
+  }, [market.address, signer]);
 
-    const symbol = market.tokenSymbol || "USDT";
-    volume = `${volume} ${symbol}`;
-  }
-} catch (err) {
-  console.error("Error parsing market volume:", err);
-}
-
-  
-  const yesPercent = (() => {
+  const loadBalances = async () => {
+    if (!address || !marketContract) return;
     try {
-      const yesBN = market.yesToken
-        ? parseFloat(market.yesToken.toString())
-        : 1;
-      const noBN = market.noToken ? parseFloat(market.noToken.toString()) : 1;
-      const total = yesBN + noBN;
-      return Math.round((yesBN / total) * 100);
+      const provider = marketContract.provider;
+      const yesToken = getMockERC20(provider, market.yesToken);
+      const noToken = getMockERC20(provider, market.noToken);
+
+      const [yesBal, noBal] = await Promise.all([
+        yesToken.balanceOf(address),
+        noToken.balanceOf(address),
+      ]);
+
+      setYesBalance(ethers.utils.formatUnits(yesBal, 18));
+      setNoBalance(ethers.utils.formatUnits(noBal, 18));
+
+      if (resolved) {
+        const win = await marketContract.winningOutcome();
+        setOutcome(win ? "YES" : "NO");
+      }
     } catch (err) {
-      console.error("An error occurred calculating percentages:", err);
-      return 50;
+      console.error("Failed to load balances:", err);
     }
-  })();
-  
+  };
 
-  const radius = 40;
-  const circumference = 2 * Math.PI * radius;
-  const yesOffset = circumference - (circumference * yesPercent) / 100;
+  useEffect(() => {
+    loadBalances();
+  }, [address, marketContract, resolved]);
 
-  const toggleWatch = async (e) => {
-    e.preventDefault(); 
-    if (!user) {
-      alert("Please sign in to manage your watchlist.");
+  const placeBet = async (side) => {
+    if (!readyToWrite) {
+      setStatus("Connect wallet first.");
+      return;
+    }
+    if (!amount || isNaN(amount) || Number(amount) <= 0) {
+      setStatus("Enter a valid amount.");
       return;
     }
 
-    const newState = !isWatching;
-    setIsWatching(newState);
-    onWatchlistChange?.(address, newState);
-
     try {
-      await fetch(`/api/watchlist/${user.id}`, {
-        method: newState ? "POST" : "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ market: address }),
-      });
+      setStatus("Approving token...");
+      const tokenAddr = side === "YES" ? market.yesToken : market.noToken;
+      const token = getMockERC20(signer.provider, tokenAddr);
+      const amtWei = ethers.utils.parseUnits(amount, 18);
+
+      const allowance = await token.allowance(address, market.address);
+      if (allowance.lt(amtWei)) {
+        const approveTx = await token.connect(signer).approve(market.address, amtWei);
+        await approveTx.wait();
+      }
+
+      setStatus("Placing bet...");
+      const tx = await marketContract.placeBet(side === "YES", amtWei);
+      await tx.wait();
+
+      setStatus("Bet placed successfully!");
+      setAmount("");
+      loadBalances();
     } catch (err) {
-      console.error("Error updating watchlist:", err);
+      console.error(err);
+      setStatus("Failed to place bet: " + (err.message || err));
     }
   };
 
   return (
-    <Link to={`/markets/${address}`} className="market-card-link">
-      <article className="market-card">
-        <div className="card-header">
-          <button
-            className="watch-btn"
-            onClick={toggleWatch}
-            title={isWatching ? "Remove from watchlist" : "Add to watchlist"}
-          >
-            {isWatching ? "★" : "☆"}
+    <div className={`market-card ${resolved ? "resolved" : ""}`}>
+      <h3>{market.question}</h3>
+      <p>Resolve: {new Date(market.resolveTimestamp).toLocaleString()}</p>
+      {resolved && <p>Outcome: <strong>{outcome}</strong></p>}
+
+      <div className="balances">
+        <span>YES: {yesBalance}</span>
+        <span>NO: {noBalance}</span>
+      </div>
+
+      {!resolved && (
+        <div className="betting">
+          <input
+            type="number"
+            value={amount}
+            placeholder="Amount"
+            onChange={(e) => setAmount(e.target.value)}
+          />
+          <button onClick={() => placeBet("YES")} disabled={!readyToWrite}>
+            Bet YES
           </button>
-          <h3 className="card-title">{market.question || "Untitled market"}</h3>
+          <button onClick={() => placeBet("NO")} disabled={!readyToWrite}>
+            Bet NO
+          </button>
         </div>
+      )}
 
-        <div className="meta-row">
-          <div>Resolve: {resolveAt ? resolveAt.toLocaleString() : "—"}</div>
-          <div>Market: {address.slice(0, 8)}...</div>
-          <div>Volume: {volume}</div>
-        </div>
-
-        <div className="circular-gauge">
-          <svg width="100" height="100">
-            <circle
-              cx="50"
-              cy="50"
-              r={radius}
-              stroke="#ff6b6b"
-              strokeWidth="10"
-              fill="transparent"
-              opacity="0.3"
-            />
-            <circle
-              cx="50"
-              cy="50"
-              r={radius}
-              stroke="#facc15" 
-              strokeWidth="10"
-              fill="transparent"
-              strokeDasharray={circumference}
-              strokeDashoffset={yesOffset}
-              strokeLinecap="round"
-              transform="rotate(-90 50 50)"
-            />
-            <text x="50" y="55" textAnchor="middle" fontSize="16" fill="#fff">
-              {yesPercent}%
-            </text>
-          </svg>
-        </div>
-
-        <div className="choice-buttons">
-          <button className="yes-btn">YES</button>
-          <button className="no-btn">NO</button>
-        </div>
-      </article>
-    </Link>
+      {status && <p className="status">{status}</p>}
+    </div>
   );
 }
 
 MarketCard.propTypes = {
   market: PropTypes.shape({
-    isWatching: PropTypes.bool,
-    resolveTimestamp: PropTypes.number,
-    resolveTime: PropTypes.number,
-    resolveAt: PropTypes.number,
-    address: PropTypes.string,
-    volume: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-    yesToken: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-    noToken: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-    question: PropTypes.string,
-    tokenSymbol: PropTypes.string,
+    address: PropTypes.string.isRequired,
+    question: PropTypes.string.isRequired,
+    yesToken: PropTypes.string.isRequired,
+    noToken: PropTypes.string.isRequired,
+    resolveTimestamp: PropTypes.number.isRequired,
+    resolved: PropTypes.bool,
   }).isRequired,
-  user: PropTypes.shape({
-    id: PropTypes.string.isRequired,
-  }),
-  onWatchlistChange: PropTypes.func.isRequired,
 };

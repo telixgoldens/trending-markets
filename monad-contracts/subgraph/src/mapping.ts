@@ -9,12 +9,10 @@ import {
 } from "../generated/templates/BinaryMarket/BinaryMarket"
 import { Market, LiquidityEvent, Swap, Resolution, Redemption } from "../generated/schema"
 
-// Helper for unique IDs
 function getIdFromEvent(eventId: string, address: string, index: BigInt): string {
   return address + "-" + index.toString()
 }
 
-// MarketCreated
 export function handleMarketCreated(event: MarketCreated): void {
   let market = new Market(event.params.market.toHex())
   market.address = event.params.market
@@ -25,12 +23,10 @@ export function handleMarketCreated(event: MarketCreated): void {
   market.winningOutcome = null
   market.save()
 
-  // Start indexing this new market
   BinaryMarket.create(event.params.market)
 }
 
 
-// LiquidityAdded
 export function handleLiquidityAdded(event: LiquidityAdded): void {
   let id = event.transaction.hash.toHex() + "-" + event.logIndex.toString()
   let e = new LiquidityEvent(id)
@@ -43,13 +39,12 @@ export function handleLiquidityAdded(event: LiquidityAdded): void {
   e.save()
 }
 
-// Swap
 export function handleSwap(event: SwapEvent): void {
   let id = event.transaction.hash.toHex() + "-" + event.logIndex.toString()
   let s = new Swap(id)
   s.market = event.address.toHex()
   s.trader = event.params.trader
-  s.outcomeIndex = BigInt.fromI32(event.params.outcomeIndex)  // ✅ FIXED
+  s.outcomeIndex = BigInt.fromI32(event.params.outcomeIndex)  
   s.collateralIn = event.params.collateralIn
   s.tokensOut = event.params.tokensOut
   s.fee = event.params.fee
@@ -57,23 +52,21 @@ export function handleSwap(event: SwapEvent): void {
   s.save()
 }
 
-// MarketResolved
 export function handleMarketResolved(event: MarketResolved): void {
   let market = Market.load(event.address.toHex())
   if (market == null) return
   market.resolved = true
-  market.winningOutcome = BigInt.fromI32(event.params.winningOutcome) // ✅ FIXED
+  market.winningOutcome = BigInt.fromI32(event.params.winningOutcome) 
   market.save()
 
   let id = event.transaction.hash.toHex() + "-" + event.logIndex.toString()
   let r = new Resolution(id)
   r.market = market.id
-  r.winningOutcome = BigInt.fromI32(event.params.winningOutcome) // ✅ FIXED
+  r.winningOutcome = BigInt.fromI32(event.params.winningOutcome)
   r.timestamp = event.block.timestamp
   r.save()
 }
 
-// Redeemed
 export function handleRedeemed(event: Redeemed): void {
   let id = event.transaction.hash.toHex() + "-" + event.logIndex.toString()
   let redemption = new Redemption(id)

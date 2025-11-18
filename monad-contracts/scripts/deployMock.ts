@@ -9,9 +9,8 @@ async function main() {
   const mock = await MockERC20.deploy("Test USD", "tUSD", 18);
   await mock.deployed();
 
-  console.log("✅ MockERC20 deployed at:", mock.address);
+  console.log("MockERC20 deployed at:", mock.address);
 
-  // Optionally mint some tokens to yourself for testing
   const tx = await mock.mint(deployer.address, ethers.utils.parseUnits("1000000", 18));
   await tx.wait();
   console.log("Minted 1,000,000 mUSD to deployer:", deployer.address);

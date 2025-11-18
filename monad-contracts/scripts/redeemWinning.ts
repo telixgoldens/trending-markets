@@ -12,7 +12,6 @@ async function main() {
 
   const BinaryMarket = await ethers.getContractAt("BinaryMarket", marketAddr);
 
-  // Check market status
   const resolved = await BinaryMarket.resolved();
   if (!resolved) {
     throw new Error("Market not yet resolved");
@@ -21,7 +20,6 @@ async function main() {
   const winningOutcome = await BinaryMarket.winningOutcome();
   console.log(`Winning outcome: ${winningOutcome === 1 ? "YES" : "NO"}`);
 
-  // Pick correct outcome token (YES or NO)
   const tokenAddr =
     winningOutcome === 1
       ? await BinaryMarket.tokenYes()
@@ -41,7 +39,7 @@ async function main() {
   const tx = await BinaryMarket.redeem(balance);
   await tx.wait();
 
-  console.log("✅ Redemption successful. Collateral claimed!");
+  console.log("Redemption successful. Collateral claimed!");
 }
 
 main().catch((err) => {

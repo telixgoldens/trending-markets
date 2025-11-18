@@ -1,16 +1,13 @@
 import React, { useEffect, useState } from "react";
-import {
-  getProvider,
-  getMarketFactoryContract,
-  getBinaryMarketContract,
-} from "../utils/contracts";
+import { getMarketFactoryContract, getBinaryMarketContract } from "../utils/contracts";
 import MarketCard from "../components/MarketCard";
 import MarketFilters from "../components/MarketFilters";
-import PropTypes from 'prop-types'; 
 import "../styles/MarketCard.css";
 
-export default function MarketList({ user }) {
-  
+export default function MarketList() {
+  const [signer, setSigner] = useState(null);
+  const [address, setAddress] = useState(null);
+
   const [markets, setMarkets] = useState([]);
   const [factory, setFactory] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -20,36 +17,45 @@ export default function MarketList({ user }) {
   const [watchlist, setWatchlist] = useState([]);
   const perPage = 20;
 
-  async function loadMarkets() {
+  async function connectWallet() {
+    if (!window.ethereum) return alert("MetaMask not installed");
     try {
-      setLoading(true);
-      const provider = getProvider();
-      const factoryContract = getMarketFactoryContract(provider);
+      const [account] = await window.ethereum.request({ method: "eth_requestAccounts" });
+      setAddress(account);
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      setSigner(provider.getSigner());
+    } catch (err) {
+      console.error("Wallet connect failed:", err);
+    }
+  }
+
+  async function loadMarkets() {
+    if (!signer) return;
+    setLoading(true);
+    try {
+      const factoryContract = getMarketFactoryContract(signer);
       setFactory(factoryContract);
 
       const marketAddresses = await factoryContract.getMarkets();
       const details = await Promise.all(
         marketAddresses.map(async (addr) => {
-          const market = getBinaryMarketContract(addr, provider);
+          const market = getBinaryMarketContract(addr, signer);
           const question = await market.question();
           const resolveTimestamp = await market.resolveTimestamp();
           const yesToken = await market.tokenYes();
           const noToken = await market.tokenNo();
-          const volume = yesToken + noToken || 0;
           const resolved = await market.resolved().catch(() => false);
-
           return {
             address: addr,
             question,
             resolveTimestamp: resolveTimestamp * 1000,
             yesToken,
             noToken,
-            volume,
+            volume: 0,
             resolved,
           };
         })
       );
-
       setMarkets(details);
     } catch (err) {
       console.error("Error loading markets:", err);
@@ -58,11 +64,10 @@ export default function MarketList({ user }) {
     }
   }
 
-  
   async function loadWatchlist() {
-    if (!user) return;
+    if (!address) return;
     try {
-      const res = await fetch(`/api/watchlist/${user.id}`);
+      const res = await fetch(`/api/watchlist/${address}`);
       const data = await res.json();
       setWatchlist(data.markets || []);
     } catch (err) {
@@ -71,99 +76,50 @@ export default function MarketList({ user }) {
   }
 
   useEffect(() => {
+    if (!signer) return;
     loadMarkets();
     loadWatchlist();
-  }, [user]);
+  }, [signer, address]);
 
   useEffect(() => {
     if (!factory) return;
-    factory.on("MarketCreated", () => loadMarkets());
+    factory.on("MarketCreated", loadMarkets);
     return () => factory.removeAllListeners("MarketCreated");
   }, [factory]);
 
   const filteredMarkets = [...markets].sort((a, b) => {
     if (activeFilter === "Watch List") {
-      if (!user) {
-        setShowSignInModal(true);
-        return 0;
-      }
-      return 0; 
+      if (!address) setShowSignInModal(true);
+      return 0;
     }
-
     switch (activeFilter) {
-      case "Trending":
-        return b.volume - a.volume;
-      case "Ending soon":
-        return a.resolveTimestamp - b.resolveTimestamp;
-      case "High volume":
-        return b.volume - a.volume;
-      case "Newest":
-        return b.resolveTimestamp - a.resolveTimestamp;
-      default:
-        return 0;
+      case "Trending": return b.volume - a.volume;
+      case "Ending soon": return a.resolveTimestamp - b.resolveTimestamp;
+      case "High volume": return b.volume - a.volume;
+      case "Newest": return b.resolveTimestamp - a.resolveTimestamp;
+      default: return 0;
     }
   });
 
-  const displayedMarkets =
-    activeFilter === "Watch List" ? watchlist : filteredMarkets;
+  const displayedMarkets = activeFilter === "Watch List" ? watchlist : filteredMarkets;
   const totalPages = Math.ceil(displayedMarkets.length / perPage);
-  const paginatedMarkets = displayedMarkets.slice(
-    (page - 1) * perPage,
-    page * perPage
-  );
+  const paginatedMarkets = displayedMarkets.slice((page - 1) * perPage, page * perPage);
 
   return (
     <div className="page markets-page">
       <div className="page-header">
         <h1>Explore Markets</h1>
         <p>Discover active and past prediction markets.</p>
-        <MarketFilters
-          activeFilter={activeFilter}
-          setActiveFilter={setActiveFilter}
-        />
+        <MarketFilters activeFilter={activeFilter} setActiveFilter={setActiveFilter} />
+        {!signer && <button className="btn" onClick={connectWallet}>Connect MetaMask</button>}
       </div>
 
       {showSignInModal && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100vw",
-            height: "100vh",
-            background: "rgba(0,0,0,0.8)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-          }}
-        >
-          <div
-            style={{
-              background: "#111827",
-              padding: "2rem",
-              borderRadius: "12px",
-              textAlign: "center",
-              color: "#facc15",
-            }}
-          >
+        <div className="modal-overlay">
+          <div className="modal-content">
             <h2>Sign In Required</h2>
-            <p>To view your watchlist, please sign in first.</p>
-            <button
-              onClick={() => setShowSignInModal(false)}
-              style={{
-                marginTop: "1rem",
-                padding: "0.8rem 1.5rem",
-                borderRadius: "10px",
-                background: "#facc15",
-                color: "#111827",
-                border: "none",
-                cursor: "pointer",
-                fontWeight: "700",
-              }}
-            >
-              Close
-            </button>
+            <p>Connect MetaMask to view your watchlist.</p>
+            <button onClick={() => setShowSignInModal(false)}>Close</button>
           </div>
         </div>
       )}
@@ -174,37 +130,15 @@ export default function MarketList({ user }) {
         <p className="no-markets">No markets available yet.</p>
       ) : (
         <>
-          <div
-            className="market-grid"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(4, 1fr)",
-              gap: "16px",
-            }}
-          >
-            {paginatedMarkets.map((m) => (
-              <MarketCard key={m.address} market={m} />
-            ))}
+          <div className="market-grid">
+            {paginatedMarkets.map((m) => <MarketCard key={m.address} market={m} />)}
           </div>
-
-          <div
-            className="pagination"
-            style={{ marginTop: 20, textAlign: "center" }}
-          >
+          <div className="pagination">
             {Array.from({ length: totalPages }, (_, i) => (
               <button
                 key={i}
                 onClick={() => setPage(i + 1)}
-                style={{
-                  margin: "0 4px",
-                  padding: "6px 12px",
-                  background: page === i + 1 ? "#facc15" : "#1f2937",
-                  color: "#111827",
-                  borderRadius: 6,
-                  border: "none",
-                  cursor: "pointer",
-                  fontWeight: page === i + 1 ? "700" : "500",
-                }}
+                className={page === i + 1 ? "active-page" : ""}
               >
                 {i + 1}
               </button>
@@ -215,8 +149,3 @@ export default function MarketList({ user }) {
     </div>
   );
 }
-MarketList.propTypes = {
-  user: PropTypes.shape({
-    id: PropTypes.string.isRequired,
-  }),
-};

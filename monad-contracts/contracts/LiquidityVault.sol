@@ -43,11 +43,9 @@ contract LiquidityVault is Ownable {
         emit Withdrawn(msg.sender, amount, shareAmount);
     }
 
-    // owner allocates funds to a market (simple equal split or custom)
     function allocateToMarket(address market, uint256 yesAmount, uint256 noAmount) external onlyOwner {
         uint256 total = yesAmount + noAmount;
         require(total <= poolBalance, "Not enough");
-        // approve and call addLiquidity on market
         require(collateral.approve(market, total), "approve failed");
         IBinaryMarket(market).addLiquidity(yesAmount, noAmount);
         poolBalance -= total;

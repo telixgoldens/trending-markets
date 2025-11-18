@@ -11,7 +11,7 @@ async function main() {
   const router = await Factory.deploy();
   await router.deployed();
 
-  console.log("✅ AggregatorRouter deployed at:", router.address);
+  console.log("AggregatorRouter deployed at:", router.address);
   console.log("Update your .env: AGGREGATOR_ROUTER=" + router.address);
 }
 

@@ -1,16 +1,10 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { ethers } from "ethers";
-import { useWallets } from "@privy-io/react-auth";
 import "../styles/MarketDetail.css";
-
-import {
-  getProvider,
-  getBinaryMarketContract,
-  getSigner,
-} from "../utils/contracts";
-
+import { getProvider, getBinaryMarketContract } from "../utils/contracts";
 import { Chart, registerables } from "chart.js";
+
 Chart.register(...registerables);
 
 const SUBGRAPH_URL = process.env.REACT_APP_SUBGRAPH_URL;
@@ -20,8 +14,8 @@ export default function MarketDetail() {
   const [loading, setLoading] = useState(true);
   const [marketData, setMarketData] = useState(null);
   const [onChain, setOnChain] = useState({
-    reserveYes: null,
-    reserveNo: null,
+    reserveYes: "0",
+    reserveNo: "0",
     resolved: false,
     winningOutcome: null,
     question: null,
@@ -34,34 +28,31 @@ export default function MarketDetail() {
   });
 
   const [amount, setAmount] = useState("");
-  const [side, setSide] = useState(1); // 1 = YES, 0 = NO
+  const [side, setSide] = useState(1);
   const [status, setStatus] = useState("");
   const [txPending, setTxPending] = useState(false);
-
-  // modal state
   const [orderOpen, setOrderOpen] = useState(false);
-  const [slippage, setSlippage] = useState(1); // percent
-  const [estGas, setEstGas] = useState(null);
-  const [estGasCost, setEstGasCost] = useState(null);
+  const [slippage, setSlippage] = useState(1);
 
-  const { wallets } = useWallets();
-  const privyWallet = wallets?.[0];
-
-  // chart
   const chartRef = useRef(null);
   const chartInstanceRef = useRef(null);
 
-  // Load subgraph + onchain details
+  function ensureSigner() {
+    if (!window.ethereum) throw new Error("MetaMask not connected");
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    return provider.getSigner();
+  }
+
   useEffect(() => {
     if (!address) return;
     setLoading(true);
 
-    async function loadAll() {
+    async function loadMarket() {
       try {
-        // subgraph: request by lowercase id
         let sg = null;
+
         try {
-          const q = `
+          const query = `
             query($id: ID!) {
               market(id: $id) {
                 id
@@ -75,10 +66,7 @@ export default function MarketDetail() {
           const res = await fetch(SUBGRAPH_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              query: q,
-              variables: { id: address.toLowerCase() },
-            }),
+            body: JSON.stringify({ query, variables: { id: address.toLowerCase() } }),
           });
           const j = await res.json();
           sg = j?.data?.market ?? null;
@@ -89,47 +77,28 @@ export default function MarketDetail() {
         const provider = getProvider();
         const market = getBinaryMarketContract(address, provider);
 
-        // read onchain fields
-        const [reserves, qOnChain, ts, resolvedFlag, winning] =
-          await Promise.all([
-            market
-              .getReserves()
-              .catch(() => [
-                ethers.BigNumber.from(0),
-                ethers.BigNumber.from(0),
-              ]),
-            market.question().catch(() => null),
-            market.resolveTimestamp().catch(() => null),
-            market.resolved().catch(() => false),
-            market.winningOutcome().catch(() => null),
-          ]);
+        const [reserves, qOnChain, ts, resolvedFlag, winning] = await Promise.all([
+          market.getReserves().catch(() => [ethers.BigNumber.from(0), ethers.BigNumber.from(0)]),
+          market.question().catch(() => null),
+          market.resolveTimestamp().catch(() => null),
+          market.resolved().catch(() => false),
+          market.winningOutcome().catch(() => null),
+        ]);
 
         const reserveYes = reserves ? reserves[0].toString() : "0";
         const reserveNo = reserves ? reserves[1].toString() : "0";
 
-        // collateral address
         let collateralAddr = null;
-        try {
-          collateralAddr = await market.collateral();
-        } catch (e) {
-          try {
-            collateralAddr = await market.collateralToken();
-          } catch (e2) {
-            collateralAddr = null;
-          }
-        }
+        try { collateralAddr = await market.collateral(); }
+        catch { try { collateralAddr = await market.collateralToken(); } catch { collateralAddr = null; } }
 
-        // try to read token metadata
         let decimals = 18;
         let symbol = "COL";
         if (collateralAddr) {
           try {
             const tokenContract = new ethers.Contract(
               collateralAddr,
-              [
-                "function decimals() view returns (uint8)",
-                "function symbol() view returns (string)",
-              ],
+              ["function decimals() view returns (uint8)", "function symbol() view returns (string)"],
               provider
             );
             decimals = await tokenContract.decimals().catch(() => 18);
@@ -148,15 +117,9 @@ export default function MarketDetail() {
           question: qOnChain || (sg ? sg.question : null),
           resolveTimestamp: ts ? Number(ts) : sg?.resolveTime ?? null,
         });
+        setCollateralInfo({ address: collateralAddr, decimals, symbol });
 
-        setCollateralInfo({
-          address: collateralAddr,
-          decimals,
-          symbol,
-        });
-
-        // render chart placeholder / small sample dataset
-        renderChart([Number(reserveYes), Number(reserveNo)]);
+        renderChart(reserveYes, reserveNo);
       } catch (err) {
         console.error("Load market failed:", err);
       } finally {
@@ -164,62 +127,38 @@ export default function MarketDetail() {
       }
     }
 
-    loadAll();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    loadMarket();
   }, [address]);
 
-  function renderChart(reservesPair = [0, 0]) {
-    try {
-      const ctx = chartRef.current;
-      if (!ctx) return;
-      if (chartInstanceRef.current) {
-        chartInstanceRef.current.data.datasets[0].data = reservesPair;
-        chartInstanceRef.current.update();
-        return;
-      }
-      chartInstanceRef.current = new Chart(ctx, {
-        type: "bar",
-        data: {
-          labels: ["YES", "NO"],
-          datasets: [
-            {
-              label: "Reserves",
-              data: reservesPair,
-              backgroundColor: [
-                "rgba(46,204,113,0.9)",
-                "rgba(255,107,107,0.9)",
-              ],
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-          },
-          scales: {
-            x: { grid: { display: false } },
-            y: {
-              ticks: { color: "var(--muted)" },
-              grid: { color: "rgba(255,255,255,0.02)" },
-            },
-          },
-        },
-      });
-    } catch (e) {
-      console.warn("Chart render error", e);
+  function renderChart(reserveYesRaw, reserveNoRaw) {
+    const yes = Number(reserveYesRaw);
+    const no = Number(reserveNoRaw);
+    const total = yes + no || 1;
+    const yesPct = ((yes / total) * 100).toFixed(1);
+    const noPct = ((no / total) * 100).toFixed(1);
+
+    const ctx = chartRef.current;
+    if (!ctx) return;
+
+    if (chartInstanceRef.current) {
+      chartInstanceRef.current.data.datasets[0].data = [yesPct, noPct];
+      chartInstanceRef.current.update();
+      return;
     }
+
+    chartInstanceRef.current = new Chart(ctx, {
+      type: "bar",
+      data: { labels: ["YES", "NO"], datasets: [{ label: "Market Probability (%)", data: [yesPct, noPct], backgroundColor: ["rgba(46,204,113,0.9)", "rgba(255,107,107,0.9)"] }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { ticks: { color: "var(--muted)" }, grid: { color: "rgba(255,255,255,0.02)" }, min: 0, max: 100 } } }
+    });
   }
 
   function fmtToken(amountRaw) {
     if (!amountRaw || amountRaw === "0") return "0";
-    try {
-      return ethers.utils.formatUnits(amountRaw, collateralInfo.decimals);
-    } catch {
-      return amountRaw;
-    }
+    try { return ethers.utils.formatUnits(amountRaw, collateralInfo.decimals); } 
+    catch { return amountRaw; }
   }
+
   function timeLeft(ts) {
     if (!ts) return "—";
     const left = Number(ts) - Math.floor(Date.now() / 1000);
@@ -230,94 +169,27 @@ export default function MarketDetail() {
     return `${d}d ${h}h ${m}m`;
   }
 
-  async function openOrderModal(desiredSide) {
-    setSide(desiredSide);
-    setOrderOpen(true);
-    setEstGas(null);
-    setEstGasCost(null);
-    setStatus("");
-
-    try {
-      const provider = getProvider();
-      if (!privyWallet || !privyWallet.provider) {
-        setStatus("Please connect your Privy wallet first.");
-        return;
-      }
-
-      const signer = await getSigner(privyWallet.provider);
-      const market = getBinaryMarketContract(address, signer);
-
-      const decimals = collateralInfo.decimals || 18;
-      const sampleAmount = ethers.utils.parseUnits("0.1", decimals);
-      const minTokensOut = ethers.BigNumber.from(1);
-
-      try {
-        const gasEstimate = await market.estimateGas.buy(
-          desiredSide,
-          sampleAmount,
-          minTokensOut
-        );
-        const feeData = await provider.getFeeData();
-        let gasPrice =
-          feeData.gasPrice ||
-          feeData.maxFeePerGas ||
-          ethers.BigNumber.from("0");
-
-        if (!gasPrice || gasPrice.isZero()) {
-          gasPrice = ethers.utils.parseUnits("5", "gwei");
-        }
-        const cost = gasEstimate.mul(gasPrice);
-        setEstGas(gasEstimate.toString());
-        setEstGasCost(ethers.utils.formatEther(cost));
-      } catch (estErr) {
-        console.warn("Gas estimate failed:", estErr);
-        setEstGas("n/a");
-        setEstGasCost("n/a");
-      }
-    } catch (err) {
-      console.error("Order modal prepare failed:", err);
-    }
-  }
-
   async function confirmOrder() {
-    setStatus("");
     if (!amount || Number(amount) <= 0) return setStatus("Enter amount > 0");
-    if (!collateralInfo.address)
-      return setStatus("Collateral token not configured");
+    if (!collateralInfo.address) return setStatus("Collateral token not configured");
 
     try {
       setTxPending(true);
       setStatus("Preparing transaction...");
-      if (!privyWallet || !privyWallet.provider) {
-        setStatus("Please connect your Privy wallet first.");
-        return;
-      }
-
-      const signer = await getSigner(privyWallet.provider);
+      const signer = ensureSigner();
       const callerAddress = await signer.getAddress();
       const market = getBinaryMarketContract(address, signer);
 
       const coll = new ethers.Contract(
         collateralInfo.address,
-        [
-          "function approve(address spender, uint256 amount) public returns (bool)",
-          "function allowance(address owner, address spender) public view returns (uint256)",
-          "function balanceOf(address owner) view returns (uint256)",
-        ],
+        ["function approve(address spender, uint256 amount) public returns (bool)", "function allowance(address owner, address spender) public view returns (uint256)", "function balanceOf(address owner) view returns (uint256)"],
         signer
       );
 
-      const amountRaw = ethers.utils.parseUnits(
-        amount.toString(),
-        collateralInfo.decimals
-      );
+      const amountRaw = ethers.utils.parseUnits(amount.toString(), collateralInfo.decimals);
       const allowance = await coll.allowance(callerAddress, address);
       const balance = await coll.balanceOf(callerAddress);
-      if (balance.lt(amountRaw)) {
-        setStatus(`Insufficient ${collateralInfo.symbol} balance`);
-        setTxPending(false);
-        return;
-      }
+      if (balance.lt(amountRaw)) return setStatus(`Insufficient ${collateralInfo.symbol} balance`);
 
       if (allowance.lt(amountRaw)) {
         setStatus("Approving collateral...");
@@ -326,83 +198,52 @@ export default function MarketDetail() {
         setStatus("Approval confirmed");
       }
 
-      // compute minTokensOut using slippage percent:
-      // We do not compute exact token output here (complex AMM math), so we set a conservative min (1).
-      // In production you would compute expected tokensOut from AMM formula and apply slippage.
       const minTokensOut = ethers.BigNumber.from(1);
-
       setStatus("Sending buy transaction...");
-      const tx = await market.buy(side, amountRaw, minTokensOut, {
-        gasLimit: 3_000_000,
-      });
-      setStatus("Waiting for confirmation...");
+      const tx = await market.buy(side, amountRaw, minTokensOut, { gasLimit: 3_000_000 });
       await tx.wait();
       setStatus("Purchase complete — refreshing state");
 
-      // refresh reserves
       const reserves = await market.getReserves();
-      setOnChain((prev) => ({
-        ...prev,
-        reserveYes: reserves[0].toString(),
-        reserveNo: reserves[1].toString(),
-      }));
+      setOnChain(prev => ({ ...prev, reserveYes: reserves[0].toString(), reserveNo: reserves[1].toString() }));
+      renderChart(reserves[0].toString(), reserves[1].toString());
 
-      renderChart([
-        Number(reserves[0].toString()),
-        Number(reserves[1].toString()),
-      ]);
-
-      setTimeout(() => {
-        setOrderOpen(false);
-      }, 800);
+      setTimeout(() => setOrderOpen(false), 500);
     } catch (err) {
       console.error("Buy failed:", err);
       setStatus("Buy failed: " + (err?.message || err));
-    } finally {
-      setTxPending(false);
-    }
+    } finally { setTxPending(false); }
   }
 
   async function handleRedeem() {
-    setStatus("");
     try {
       setTxPending(true);
       setStatus("Preparing redeem...");
-      if (!privyWallet || !privyWallet.provider) {
-        setStatus("Please connect your Privy wallet first.");
-        return;
-      }
-      const signer = await getSigner(privyWallet.provider);
+      const signer = ensureSigner();
       const market = getBinaryMarketContract(address, signer);
 
       const winner = onChain.winningOutcome;
-      const tokenAddr =
-        winner === 1 ? await market.tokenYes() : await market.tokenNo();
-      const token = new ethers.Contract(
-        tokenAddr,
-        ["function balanceOf(address owner) view returns (uint256)"],
-        signer
-      );
+      const tokenAddr = winner === 1 ? await market.tokenYes() : await market.tokenNo();
+      const token = new ethers.Contract(tokenAddr, ["function balanceOf(address owner) view returns (uint256)"], signer);
 
       const ownerAddr = await signer.getAddress();
       const tokensToRedeem = await token.balanceOf(ownerAddr);
-      if (tokensToRedeem.lte(0)) {
-        setStatus("No winning outcome tokens to redeem");
-        setTxPending(false);
-        return;
-      }
+      if (tokensToRedeem.lte(0)) return setStatus("No winning outcome tokens to redeem");
 
       setStatus("Sending redeem tx...");
       const tx = await market.redeem(tokensToRedeem, { gasLimit: 3_000_000 });
       await tx.wait();
       setStatus("Redeemed — check your collateral balance");
+
+      const reserves = await market.getReserves();
+      setOnChain(prev => ({ ...prev, reserveYes: reserves[0].toString(), reserveNo: reserves[1].toString() }));
+      renderChart(reserves[0].toString(), reserves[1].toString());
     } catch (err) {
       console.error("Redeem failed:", err);
       setStatus("Redeem failed: " + (err?.message || err));
-    } finally {
-      setTxPending(false);
-    }
+    } finally { setTxPending(false); }
   }
+
 
   if (loading) {
     return (
@@ -423,9 +264,12 @@ export default function MarketDetail() {
                 <div>
                   Resolve:{" "}
                   {onChain.resolveTimestamp
-                    ? new Date(onChain.resolveTimestamp * 1000).toLocaleString()
+                    ? new Date(
+                        onChain.resolveTimestamp * 1000
+                      ).toLocaleDateString("en-GB")
                     : "—"}
                 </div>
+
                 <div>Time left: {timeLeft(onChain.resolveTimestamp)}</div>
                 <div>Market: {address}</div>
               </div>
@@ -619,6 +463,7 @@ export default function MarketDetail() {
                 {txPending ? "Processing..." : "Confirm Buy"}
               </button>
             </div>
+
             <div
               className="modal-note"
               style={{ marginTop: 8, color: "var(--muted)" }}

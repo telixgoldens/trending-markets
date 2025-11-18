@@ -13,17 +13,14 @@ async function main() {
     throw new Error("Missing required addresses in .env");
   }
 
-  // Connect to contracts
   const Router = await ethers.getContractAt("AggregatorRouter", routerAddress);
   const Collateral = await ethers.getContractAt("IERC20", collateralAddress);
   const Market = await ethers.getContractAt("BinaryMarket", marketAddress);
 
-  // Abort early if market already resolved
   try {
     const isResolved = await Market.resolved();
     if (isResolved) throw new Error("Market already resolved — aborting buy");
   } catch (e: any) {
-    // If the contract doesn't expose resolved(), continue (older ABI); otherwise rethrow
     if (e.message && e.message.includes("already resolved")) throw e;
   }
 
@@ -38,7 +35,6 @@ async function main() {
   console.log(`User collateral balance: ${ethers.utils.formatUnits(userBalance, 18)}`);
   console.log(`Amount trying to spend: ${ethers.utils.formatUnits(collateralIn, 18)}`);
 
-  // Market info using correct function names
   const marketCollateral = await Market.collateral();
   const yesToken = await Market.tokenYes();
   const noToken = await Market.tokenNo();

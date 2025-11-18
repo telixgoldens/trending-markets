@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { ethers } from "ethers";
 import {
-  getProvider,
-  getSigner,
   getMarketFactoryContract,
   getBinaryMarketContract,
   getMockERC20,
@@ -11,6 +9,7 @@ import MockERC20Abi from "../abi/MockERC20.json";
 import "../styles/Profile.css";
 
 export default function Profile() {
+  const [signer, setSigner] = useState(null);
   const [balance, setBalance] = useState("—");
   const [activePositions, setActivePositions] = useState([]);
   const [history, setHistory] = useState([]);
@@ -18,32 +17,42 @@ export default function Profile() {
   const [factory, setFactory] = useState(null);
   const [selectedMarket, setSelectedMarket] = useState(null);
 
+  async function connectWallet() {
+    if (!window.ethereum) return alert("MetaMask not found");
+    await window.ethereum.request({ method: "eth_requestAccounts" });
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    setSigner(provider.getSigner());
+  }
+
   async function loadProfile() {
+    if (!signer) {
+      console.warn("Wallet not connected");
+      return;
+    }
+
     try {
       setLoading(true);
-      const provider = getProvider();
-      const signer = await getSigner();
       const userAddr = await signer.getAddress();
 
-      const mockToken = getMockERC20(provider);
+      const mockToken = getMockERC20(signer);
       const bal = await mockToken.balanceOf(userAddr);
       setBalance(ethers.utils.formatUnits(bal, 18));
 
-      const factoryContract = getMarketFactoryContract(provider);
+      const factoryContract = getMarketFactoryContract(signer);
       setFactory(factoryContract);
       const markets = await factoryContract.getMarkets();
 
       const all = await Promise.all(
         markets.map(async (addr) => {
-          const market = getBinaryMarketContract(addr, provider);
+          const market = getBinaryMarketContract(addr, signer);
           const question = await market.question();
           const yesTokenAddr = await market.tokenYes();
           const noTokenAddr = await market.tokenNo();
           const resolved = await market.resolved().catch(() => false);
           const outcome = resolved ? await market.winningOutcome() : null;
 
-          const yesToken = new ethers.Contract(yesTokenAddr, MockERC20Abi, provider);
-          const noToken = new ethers.Contract(noTokenAddr, MockERC20Abi, provider);
+          const yesToken = new ethers.Contract(yesTokenAddr, MockERC20Abi, signer);
+          const noToken = new ethers.Contract(noTokenAddr, MockERC20Abi, signer);
 
           const [yesBal, noBal] = await Promise.all([
             yesToken.balanceOf(userAddr),
@@ -61,13 +70,11 @@ export default function Profile() {
               const amount = parseFloat(ethers.utils.formatUnits(e.args.amount, 18));
               totalStaked += amount;
             });
-          } catch (e) {
-            console.log(`No BetPlaced events for ${addr}`);
-          }
+          } catch {}
 
           let pnl = 0;
           if (resolved) {
-            const isWin = outcome ? yes > 0 : no > 0;
+            const isWin = outcome === 1 ? yes > 0 : no > 0;
             const payout = isWin ? totalStaked * 2 : 0;
             pnl = payout - totalStaked;
           }
@@ -98,10 +105,6 @@ export default function Profile() {
   }
 
   useEffect(() => {
-    loadProfile();
-  }, []);
-
-  useEffect(() => {
     if (!factory) return;
     factory.on("MarketCreated", loadProfile);
     return () => factory.removeAllListeners("MarketCreated");
@@ -119,9 +122,13 @@ export default function Profile() {
       <div className="card">
         <h2>Wallet Overview</h2>
         <p>Token Balance: {balance}</p>
-        <button onClick={loadProfile} disabled={loading} className="btn">
-          {loading ? "Refreshing..." : "Refresh Data"}
-        </button>
+        {!signer ? (
+          <button onClick={connectWallet} className="btn">Connect Wallet</button>
+        ) : (
+          <button onClick={loadProfile} disabled={loading} className="btn">
+            {loading ? "Refreshing..." : "Refresh Data"}
+          </button>
+        )}
       </div>
 
       <div className="card">
@@ -171,11 +178,7 @@ export default function Profile() {
                 <h3>{p.question}</h3>
                 <p>Outcome: <strong>{p.outcome ? "YES" : "NO"}</strong></p>
                 <p>
-                  PnL:{" "}
-                  <strong>
-                    {parseFloat(p.pnl) >= 0 ? "+" : ""}
-                    {p.pnl}
-                  </strong>
+                  PnL: <strong>{parseFloat(p.pnl) >= 0 ? "+" : ""}{p.pnl}</strong>
                 </p>
               </div>
             ))}
@@ -183,7 +186,6 @@ export default function Profile() {
         )}
       </div>
 
-      {/* Modal */}
       {selectedMarket && (
         <div className="modal-overlay" onClick={() => setSelectedMarket(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -196,15 +198,8 @@ export default function Profile() {
             <p><strong>Staked:</strong> {selectedMarket.staked}</p>
             <p>
               <strong>PnL:</strong>{" "}
-              <span
-                className={
-                  parseFloat(selectedMarket.pnl) >= 0
-                    ? "pnl-positive"
-                    : "pnl-negative"
-                }
-              >
-                {parseFloat(selectedMarket.pnl) >= 0 ? "+" : ""}
-                {selectedMarket.pnl}
+              <span className={parseFloat(selectedMarket.pnl) >= 0 ? "pnl-positive" : "pnl-negative"}>
+                {parseFloat(selectedMarket.pnl) >= 0 ? "+" : ""}{selectedMarket.pnl}
               </span>
             </p>
             <button onClick={() => setSelectedMarket(null)} className="btn close-btn">

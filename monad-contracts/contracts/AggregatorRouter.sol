@@ -13,7 +13,6 @@ interface IPriceableMarket {
 }
 
 contract AggregatorRouter {
-    // naive route: choose market with largest opposite reserve to maximize depth
     function routeBuy(address[] calldata markets, uint8 outcomeIndex, uint256 collateralIn, uint256 minTokensOut) external {
         require(markets.length > 0, "No markets");
         uint256 bestIndex = 0;
@@ -33,13 +32,11 @@ contract AggregatorRouter {
 
         address chosen = markets[bestIndex];
 
-        // pull user's collateral into the chosen market (caller must have approved this router)
         address collAddr = IPriceableMarket(chosen).collateral();
         require(collAddr != address(0), "No collateral");
         bool ok = IERC20Minimal(collAddr).transferFrom(msg.sender, chosen, collateralIn);
         require(ok, "transferFrom failed");
 
-        // now call the market's buy — market will detect tokens already in contract and skip pulling again
         IPriceableMarket(chosen).buy(outcomeIndex, collateralIn, minTokensOut);
     }
 }

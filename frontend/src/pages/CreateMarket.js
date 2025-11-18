@@ -1,61 +1,97 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { getMarketFactoryContract } from "../utils/contracts";
 import IntentInput from "../components/IntentInput";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { useWallets } from "@privy-io/react-auth";
 import { ethers } from "ethers";
 
 export default function CreateMarket() {
   const location = useLocation();
   const intent = location.state?.intent;
+  const navigate = useNavigate();
 
-  const [question, setQuestion] = useState(() => intent?.condition ?? "");
-  const [expiry, setExpiry] = useState(() =>
-    intent?.date
-      ? Math.floor(new Date(intent.date).getTime() / 1000)
-      : Math.floor(Date.now() / 1000) + 7 * 24 * 3600
-  );
-  const [yesName, setYesName] = useState(() => intent?.yesName ?? "Yes Token");
+  const [question, setQuestion] = useState(intent?.condition ?? "");
+  const [expiry, setExpiry] = useState(() => {
+    if (intent?.date) return Math.floor(new Date(intent.date).getTime() / 1000);
+    const now = new Date();
+    const yearEnd = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+    return Math.floor(yearEnd.getTime() / 1000);
+  });
+  const [yesName, setYesName] = useState(intent?.yesName ?? "Yes Token");
   const [yesSym, setYesSym] = useState("YES");
-  const [noName, setNoName] = useState(() => intent?.noName ?? "No Token");
+  const [noName, setNoName] = useState(intent?.noName ?? "No Token");
   const [noSym, setNoSym] = useState("NO");
   const [status, setStatus] = useState("");
-  const [analysis] = useState(null);
+  const [analysis, setAnalysis] = useState(null);
 
-  const { wallets } = useWallets();
-  const privyWallet = wallets.find(w => w.walletClientType === "privy");
+  const [account, setAccount] = useState(null);
+  const [signer, setSigner] = useState(null);
+
+  const readyToWrite = !!signer;
+
+  useEffect(() => {
+    if (!window.ethereum) return;
+
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    provider.send("eth_requestAccounts", []).then((accounts) => {
+      if (accounts.length) {
+        setAccount(accounts[0]);
+        setSigner(provider.getSigner());
+      }
+    });
+
+    window.ethereum.on("accountsChanged", (accounts) => {
+      if (accounts.length === 0) {
+        setAccount(null);
+        setSigner(null);
+      } else {
+        setAccount(accounts[0]);
+        setSigner(provider.getSigner());
+      }
+    });
+  }, []);
+
+  const getFactory = () => {
+    if (!signer) throw new Error("Account signer not ready");
+    return getMarketFactoryContract(signer);
+  };
 
   async function create() {
-    if (!privyWallet) {
-      setStatus(" Connect your smart account first!");
+    if (!readyToWrite) {
+      setStatus("Please connect your wallet first.");
+      return;
+    }
+
+    if (!question) {
+      setStatus("Question is required.");
+      return;
+    }
+
+    if (!expiry || Number(expiry) <= Math.floor(Date.now() / 1000)) {
+      setStatus("Expiry must be a future timestamp.");
       return;
     }
 
     try {
       setStatus("Preparing transaction...");
-
-      
-      const provider = new ethers.providers.Web3Provider(privyWallet.provider);
-      const signer = provider.getSigner();
-
-      const factory = getMarketFactoryContract(signer);
+      const factory = getFactory();
 
       setStatus("Sending transaction...");
       const tx = await factory.createMarket(
         question,
-        expiry,
+        Number(expiry),
         yesName,
         yesSym,
         noName,
         noSym
       );
-      await tx.wait();
 
+      await tx.wait();
       setStatus("Market created successfully!");
+      setTimeout(() => navigate("/markets"), 900);
     } catch (err) {
-      console.error(err);
-      setStatus("Create failed: " + (err.message || err));
+      console.error("CreateMarket create failed:", err);
+      setStatus("Create failed: " + (err?.message || err));
     }
   }
 
@@ -67,22 +103,20 @@ export default function CreateMarket() {
     setYesSym(suggestion.yesSym || "YES");
     setNoSym(suggestion.noSym || "NO");
     if (suggestion.expiry) setExpiry(suggestion.expiry);
-    setStatus(" Applied AI suggestion!");
+    setStatus("Applied AI suggestion!");
   }
+
+  const accountInfo = account || "Not connected";
 
   return (
     <div className="page container" style={{ color: "#e2e8f0" }}>
       <h1>Create Market</h1>
 
-      
       <div className="card shadow-sm mb-4 p-4">
         <h2>AI Intent Assistant</h2>
-        <p>
-          Type natural language like “Create a market on ETH above $3000 by December”.
-        </p>
-        <IntentInput />
+        <p>Type something like “Create a market on ETH above $120000 by year end”.</p>
+        <IntentInput onApply={applySuggestion} />
       </div>
-
 
       <div
         style={{
@@ -94,7 +128,10 @@ export default function CreateMarket() {
           marginTop: "1.5rem",
         }}
       >
-        <h2 style={{ color: "#f0b90b", marginBottom: "1rem" }}>Market Setup</h2>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+          <h2 style={{ color: "#f0b90b", marginBottom: "0.5rem" }}>Market Setup</h2>
+          <div style={{ color: "var(--muted)", fontSize: 13 }}>{accountInfo}</div>
+        </div>
 
         <div style={{ display: "grid", gap: "1.2rem" }}>
           <div>
@@ -111,14 +148,12 @@ export default function CreateMarket() {
               }}
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
-              placeholder="Will BTC be above $70,000 by 2025?"
+              placeholder="Will BTC be above $120,000 by 31/12/2025?"
             />
           </div>
 
           <div>
-            <label style={{ display: "block", marginBottom: ".3rem" }}>
-              Resolve Timestamp (UNIX)
-            </label>
+            <label style={{ display: "block", marginBottom: ".3rem" }}>Resolve Timestamp (UNIX)</label>
             <input
               className="form-control"
               type="number"
@@ -205,27 +240,25 @@ export default function CreateMarket() {
             onClick={create}
             style={{
               flex: 1,
-              background: "#f0b90b",
-              color: "#101010ff",
+              background: readyToWrite ? "#f0b90b" : "#6b6b6b",
+              color: readyToWrite ? "#101010ff" : "#ddd",
               border: "none",
               borderRadius: "10px",
               padding: ".8rem",
               fontWeight: "600",
-              boxShadow: "0 0 10px #f0b90b",
-              cursor: "pointer",
+              boxShadow: readyToWrite ? "0 0 10px #f0b90b" : "none",
+              cursor: readyToWrite ? "pointer" : "not-allowed",
               transition: "0.3s",
             }}
-            onMouseEnter={(e) => (e.target.style.boxShadow = "0 0 20px #f0b90b")}
-            onMouseLeave={(e) => (e.target.style.boxShadow = "0 0 10px  #f0b90b")}
+            disabled={!readyToWrite}
           >
-            Create Market
+            {readyToWrite ? "Create Market" : "Connect Wallet"}
           </button>
         </div>
 
         {status && <p style={{ marginTop: "1rem", color: "#93c5fd" }}>{status}</p>}
       </div>
 
-      
       <AnimatePresence>
         {analysis && (
           <motion.div
@@ -255,8 +288,7 @@ export default function CreateMarket() {
                     <strong>Question:</strong> {analysis.suggestion.question}
                   </p>
                   <p>
-                    <strong>Tokens:</strong> {analysis.suggestion.yesName} /{" "}
-                    {analysis.suggestion.noName}
+                    <strong>Tokens:</strong> {analysis.suggestion.yesName} / {analysis.suggestion.noName}
                   </p>
                   <button
                     className="btn btn-outline-primary mt-2"

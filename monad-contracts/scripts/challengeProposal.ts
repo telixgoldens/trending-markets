@@ -4,7 +4,7 @@ dotenv.config();
 
 async function main() {
   const [signer] = await ethers.getSigners();
-  console.log("🤖 Dispute bot active — signer:", signer.address);
+  console.log("Dispute bot active — signer:", signer.address);
 
   const oracleManagerAddr = process.env.ORACLE_MANAGER!;
   const marketAddr = process.env.SAMPLE_MARKET_ADDRESS!;
@@ -16,14 +16,14 @@ async function main() {
   const proposalCount = (await OracleManager.proposalCount()).toNumber();
 
   if (proposalCount === 0) {
-    console.log("⚠️ No proposals to dispute.");
+    console.log(" No proposals to dispute.");
     return;
   }
 
   const proposalId = proposalCount;
   const proposal = await OracleManager.proposals(proposalId);
 
-  console.log("🧩 Latest proposal:", proposalId.toString());
+  console.log(" Latest proposal:", proposalId.toString());
   console.log("Proposed outcome:", proposal.proposedOutcome.toString());
   console.log("Finalized:", proposal.finalized);
 
@@ -31,19 +31,19 @@ async function main() {
   const disputeDeadline = proposal.disputeDeadline.toNumber();
 
   if (proposal.finalized) {
-    console.log("✅ Proposal already finalized or challenged — skipping.");
+    console.log("Proposal already finalized or challenged — skipping.");
     return;
   }
 
   if (now > disputeDeadline) {
-    console.log("🕒 Dispute window expired — cannot challenge now.");
+    console.log(" Dispute window expired — cannot challenge now.");
     return;
   }
 
-  console.log("⚠️ Disputing active proposal...");
+  console.log("Disputing active proposal...");
   const tx = await OracleManager.challengeProposal(proposalId);
   await tx.wait();
-  console.log("✅ Proposal successfully challenged!");
+  console.log("Proposal successfully challenged!");
 }
 
 main().catch((err) => {

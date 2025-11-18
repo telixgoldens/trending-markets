@@ -20,7 +20,7 @@ function saveMarket(data: any) {
 }
 
 async function main() {
-  console.log("📡 Listening for MarketCreated events...\n");
+  console.log("Listening for MarketCreated events...");
 
   const factory = new ethers.Contract(FACTORY_ADDRESS, MarketFactoryAbi.abi, provider);
 
@@ -34,10 +34,10 @@ async function main() {
       createdAt: new Date().toISOString()
     };
 
-    console.log("✅ New Market Created:", data);
+    console.log(" New Market Created:", data);
     saveMarket(data);
-    console.log("💾 Saved to markets.json\n");
+    console.log("Saved to markets.json");
   });
 }
 
-main().catch((err) => console.error("❌ Listener error:", err));
+main().catch((err) => console.error(" Listener error:", err));

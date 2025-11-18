@@ -5,7 +5,7 @@ export default function Settings() {
     <div className="page">
       <h1>Settings</h1>
       <p>Manage your account, preferences, and notifications.</p>
-      {/* Add theme toggle, API keys, notifications, etc. */}
+      
     </div>
   );
 }

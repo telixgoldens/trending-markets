@@ -69,7 +69,6 @@ export default function MarketFilters({ activeFilter, setActiveFilter }) {
     </div>
   );
 }
-// Define PropTypes for the component
 MarketFilters.propTypes = {
   activeFilter: PropTypes.string.isRequired,
   setActiveFilter: PropTypes.func.isRequired,

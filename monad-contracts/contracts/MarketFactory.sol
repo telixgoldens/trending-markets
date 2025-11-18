@@ -31,7 +31,6 @@ contract MarketFactory is Ownable, ERC2771Context {
         return ERC2771Context.trustedForwarder();
     }
 
-    // Both Context and ERC2771Context define _contextSuffixLength(), so explicitly override
     function _contextSuffixLength() internal view override(Context, ERC2771Context) returns (uint256) {
         return ERC2771Context._contextSuffixLength();
     }
@@ -63,14 +62,14 @@ contract MarketFactory is Ownable, ERC2771Context {
             collateral,
             _question,
             _resolveTimestamp,
-            oracleManager,         // the oracle
+            oracleManager,         
             defaultFeeBps,
-            creator,               // owner
+            creator,              
             yesName,
             yesSymbol,
             noName,
             noSymbol,
-            trustedForwarder()     // pass the forwarder to BinaryMarket
+            trustedForwarder()    
         );
 
         markets.push(address(market));

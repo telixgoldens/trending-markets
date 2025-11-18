@@ -17,13 +17,13 @@ async function main() {
 
   const resolved = await BinaryMarket.resolved();
   if (resolved) {
-    console.log("✅ Market already resolved, skipping...");
+    console.log("Market already resolved, skipping...");
     const winningOutcome = await BinaryMarket.winningOutcome();
     console.log("Winning outcome:", winningOutcome.toString() === "1" ? "YES (1)" : "NO (0)");
     return;
   }
 
-  console.log("⚙️ Proposing market resolution...");
+  console.log("Proposing market resolution...");
   await OracleManager.setDisputeWindow(10);
   const tx = await OracleManager.proposeAIResolution(marketAddr, 1);
   const receipt = await tx.wait();
@@ -40,7 +40,7 @@ async function main() {
   }
 
   if (!proposalId) throw new Error("No ProposalCreated event found");
-  console.log(`✅ Proposal created (id: ${proposalId.toString()})`);
+  console.log(`Proposal created (id: ${proposalId.toString()})`);
 
   const proposal = await OracleManager.proposals(proposalId);
   const disputeDeadline = proposal.disputeDeadline.toNumber();
@@ -48,15 +48,15 @@ async function main() {
   const secondsLeft = disputeDeadline - now;
 
   if (secondsLeft > 0) {
-    console.log(`🕒 Waiting ${secondsLeft}s for dispute window to expire...`);
+    console.log(` Waiting ${secondsLeft}s for dispute window to expire...`);
     await new Promise(r => setTimeout(r, secondsLeft * 1000 + 2000));
   }
 
-  console.log("⚡ Finalizing proposal after dispute window...");
+  console.log("Finalizing proposal after dispute window...");
   const finalizeTx = await OracleManager.finalizeProposal(proposalId);
   await finalizeTx.wait();
 
-  console.log("✅ Market finalized successfully!");
+  console.log("Market finalized successfully!");
 }
 
 main().catch((err) => {

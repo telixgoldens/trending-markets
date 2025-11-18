@@ -8,7 +8,7 @@ async function main() {
 
   const vaultAddress = process.env.LIQUIDITY_VAULT!;
   const collateralAddress = process.env.ERC20_ADDRESS!;
-  const depositAmount = ethers.utils.parseUnits("50000", 18); // change amount if needed
+  const depositAmount = ethers.utils.parseUnits("50000", 18); 
 
   const Collateral = await ethers.getContractAt("IERC20", collateralAddress);
   const Vault = await ethers.getContractAt("LiquidityVault", vaultAddress);
@@ -19,7 +19,6 @@ async function main() {
   console.log(`Depositor: ${deployer.address}`);
   console.log(`Amount: ${ethers.utils.formatUnits(depositAmount, 18)} tokens\n`);
 
-  // 1 Approve vault to pull collateral
   const allowance = await Collateral.allowance(deployer.address, vaultAddress);
   if (allowance.lt(depositAmount)) {
     console.log("Approving vault to spend collateral...");
@@ -30,7 +29,6 @@ async function main() {
     console.log("Vault already approved for this amount");
   }
 
-  // 2 Deposit into vault
   const tx = await Vault.deposit(depositAmount);
   await tx.wait();
   console.log(`Successfully deposited ${ethers.utils.formatUnits(depositAmount, 18)} tokens`);

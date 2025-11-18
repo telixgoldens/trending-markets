@@ -20,7 +20,7 @@ async function main() {
   const tx = await BinaryMarket.setOracle(oracleManagerAddr);
   await tx.wait();
 
-  console.log(`✅ Oracle set to OracleManager: ${oracleManagerAddr}`);
+  console.log(` Oracle set to OracleManager: ${oracleManagerAddr}`);
 }
 
 main().catch((err) => {

@@ -8,7 +8,7 @@ async function main() {
   if (!marketAddr) throw new Error("Missing SAMPLE_MARKET_ADDRESS in .env");
 
   const [signer] = await ethers.getSigners();
-  console.log("🔍 Checking market resolution status...");
+  console.log(" Checking market resolution status...");
   console.log("Market address:", marketAddr);
 
   const BinaryMarket = await ethers.getContractAt("BinaryMarket", marketAddr);
@@ -27,7 +27,7 @@ async function main() {
       try {
         finalized = await BinaryMarket.isResolved();
       } catch {
-        console.log("⚠️ No finalized/resolved flag found in contract.");
+        console.log(" No finalized/resolved flag found in contract.");
       }
     }
   }
@@ -41,15 +41,15 @@ async function main() {
         const res = await BinaryMarket.winningOutcome();
         outcome = res.toString();
       } catch {
-        console.log("⚠️ Could not read outcome variable.");
+        console.log(" Could not read outcome variable.");
       }
     }
   }
 
   if (finalized) {
-    console.log(`✅ Market finalized. Outcome: ${outcome === "1" ? "YES" : "NO"}`);
+    console.log(` Market finalized. Outcome: ${outcome === "1" ? "YES" : "NO"}`);
   } else {
-    console.log("⏳ Market not yet finalized.");
+    console.log(" Market not yet finalized.");
   }
 }
 

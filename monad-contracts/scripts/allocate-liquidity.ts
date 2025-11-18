@@ -7,8 +7,8 @@ async function main() {
 
   const vaultAddress = process.env.LIQUIDITY_VAULT!;
   const marketAddress = process.env.SAMPLE_MARKET_ADDRESS!;
-  const yesAmount = ethers.utils.parseUnits("1000", 18); // change as needed
-  const noAmount = ethers.utils.parseUnits("1000", 18);  // change as needed
+  const yesAmount = ethers.utils.parseUnits("1000", 18); 
+  const noAmount = ethers.utils.parseUnits("1000", 18);  
 
   const Vault = await ethers.getContractAt("LiquidityVault", vaultAddress);
 
@@ -19,7 +19,7 @@ async function main() {
   console.log(`YES:     ${ethers.utils.formatUnits(yesAmount, 18)}`);
   console.log(`NO:      ${ethers.utils.formatUnits(noAmount, 18)}\n`);
 
-  // must be vault owner
+  
   const tx = await Vault.allocateToMarket(marketAddress, yesAmount, noAmount);
   await tx.wait();
 

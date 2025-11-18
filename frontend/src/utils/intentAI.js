@@ -14,8 +14,6 @@ const client = new OpenAI({
   dangerouslyAllowBrowser: true,
 });
 
-
-// Step 1: Parse user intent into JSON
 export async function parseIntent(userText) {
   const prompt = `
 You are an intent parser for a prediction market.
@@ -44,12 +42,11 @@ User: "${userText}"
   try {
     return JSON.parse(res.choices[0].message.content);
   } catch (e) {
-    console.error("⚠️ Failed to parse intent:", e);
+    console.error("Failed to parse intent:", e);
     return null;
   }
 }
 
-// Step 2: AI market analysis
 export async function analyzeMarket(intent, marketData) {
   const prompt = `
 You are a market analyst AI. Evaluate this intent using market data.
@@ -79,7 +76,7 @@ Return JSON:
   try {
     return JSON.parse(res.choices[0].message.content);
   } catch (e) {
-    console.error("⚠️ Failed to parse market analysis:", e);
+    console.error("Failed to parse market analysis:", e);
     return null;
   }
 }
