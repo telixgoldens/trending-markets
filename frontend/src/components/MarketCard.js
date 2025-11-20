@@ -1,21 +1,49 @@
 import React, { useEffect, useState, useMemo } from "react";
 import PropTypes from "prop-types";
 import { ethers } from "ethers";
-import { useWallet } from "../utils/wallet"; 
 import {
   getBinaryMarketContract,
   getMockERC20,
 } from "../utils/contracts";
-import "../styles/MarketCard.css";
+import "../styles/MarketCard.css"
 
 export default function MarketCard({ market }) {
-  const { signer, address } = useWallet();  
+  const [address, setAddress] = useState(null);
+  const [signer, setSigner] = useState(null);
+
   const [yesBalance, setYesBalance] = useState("0");
   const [noBalance, setNoBalance] = useState("0");
   const [amount, setAmount] = useState("");
   const [status, setStatus] = useState("");
   const [resolved, setResolved] = useState(market.resolved);
   const [outcome, setOutcome] = useState(null);
+
+  // Detect wallet globally
+  useEffect(() => {
+    async function loadWallet() {
+      if (!window.ethereum) return;
+
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const accounts = await provider.listAccounts();
+
+      if (accounts.length > 0) {
+        setAddress(accounts[0]);
+        setSigner(provider.getSigner());
+      }
+
+      window.ethereum.on("accountsChanged", (acc) => {
+        if (acc.length > 0) {
+          setAddress(acc[0]);
+          setSigner(provider.getSigner());
+        } else {
+          setAddress(null);
+          setSigner(null);
+        }
+      });
+    }
+
+    loadWallet();
+  }, []);
 
   const readyToWrite = !!signer;
 
